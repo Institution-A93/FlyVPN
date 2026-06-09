@@ -1,0 +1,22 @@
+[Unit]
+Description=Xray VLESS-Reality (egress)
+Documentation=https://xtls.github.io
+After=network-online.target nss-lookup.target
+Wants=network-online.target
+
+[Service]
+User=xray
+ExecStart=/usr/local/bin/xray run -config /usr/local/etc/xray/config.json
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=1048576
+# Бинд 443 без root:
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/usr/local/etc/xray
+
+[Install]
+WantedBy=multi-user.target

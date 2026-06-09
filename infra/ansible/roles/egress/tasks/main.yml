@@ -1,0 +1,111 @@
+---
+# --- Гейт: секреты обязаны быть переданы оркестратором, в репозитории их нет ---
+- name: Проверить, что секреты/клиенты Reality переданы
+  ansible.builtin.assert:
+    that:
+      - egress_reality_private_key | length > 0
+      - egress_clients | length > 0
+    fail_msg: >-
+      egress_reality_private_key и egress_clients должны прийти от оркестратора
+      (через vault/inventory). В репозитории секретов нет — см. README роли.
+    quiet: true
+
+# --- Зависимости ---
+- name: Установить системные пакеты
+  ansible.builtin.apt:
+    name:
+      - ca-certificates
+      - curl
+      - unzip
+      - unbound
+    state: present
+    update_cache: true
+
+# --- Xray-core ---
+- name: Создать системного пользователя xray
+  ansible.builtin.user:
+    name: xray
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Создать каталоги Xray
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /usr/local/etc/xray
+    - /usr/local/share/xray
+
+- name: Скачать релиз Xray-core
+  ansible.builtin.get_url:
+    url: "https://github.com/XTLS/Xray-core/releases/download/{{ egress_xray_version }}/Xray-linux-{{ egress_xray_arch }}.zip"
+    dest: "/tmp/xray-{{ egress_xray_version }}.zip"
+    mode: "0644"
+  register: xray_download
+
+- name: Распаковать бинарь Xray
+  ansible.builtin.unarchive:
+    src: "/tmp/xray-{{ egress_xray_version }}.zip"
+    dest: /usr/local/bin
+    remote_src: true
+    include:
+      - xray
+    mode: "0755"
+  notify: restart xray
+
+- name: Распаковать geo-данные Xray
+  ansible.builtin.unarchive:
+    src: "/tmp/xray-{{ egress_xray_version }}.zip"
+    dest: /usr/local/share/xray
+    remote_src: true
+    include:
+      - geoip.dat
+      - geosite.dat
+    mode: "0644"
+  notify: restart xray
+
+- name: Развернуть конфиг Xray
+  ansible.builtin.template:
+    src: xray-config.json.j2
+    dest: /usr/local/etc/xray/config.json
+    owner: root
+    group: xray
+    mode: "0640"
+  notify: restart xray
+
+- name: Развернуть systemd-юнит Xray
+  ansible.builtin.template:
+    src: xray.service.j2
+    dest: /etc/systemd/system/xray.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart xray
+
+# --- unbound ---
+- name: Развернуть конфиг unbound
+  ansible.builtin.template:
+    src: unbound-egress.conf.j2
+    dest: /etc/unbound/unbound.conf.d/egress.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart unbound
+
+# --- Запуск ---
+- name: Включить и запустить unbound
+  ansible.builtin.systemd:
+    name: unbound
+    enabled: true
+    state: started
+
+- name: Включить и запустить xray
+  ansible.builtin.systemd:
+    name: xray
+    enabled: true
+    state: started
+    daemon_reload: true

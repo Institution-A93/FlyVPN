@@ -1,0 +1,42 @@
+{
+  "log": { "loglevel": "warning" },
+  "dns": {
+    "servers": [
+      { "address": "{{ egress_unbound_listen }}", "port": {{ egress_unbound_port }} }
+    ]
+  },
+  "inbounds": [
+    {
+      "tag": "vless-reality",
+      "listen": "0.0.0.0",
+      "port": {{ egress_listen_port }},
+      "protocol": "vless",
+      "settings": {
+        "clients": {{ egress_clients | map('combine', {'flow': egress_xray_flow}) | list | to_json }},
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "tcp",
+        "security": "reality",
+        "realitySettings": {
+          "show": false,
+          "dest": "{{ egress_reality_dest }}",
+          "xver": 0,
+          "serverNames": {{ egress_reality_server_names | to_json }},
+          "privateKey": "{{ egress_reality_private_key }}",
+          "shortIds": {{ egress_reality_short_ids | to_json }}
+        }
+      },
+      "sniffing": { "enabled": true, "destOverride": ["http", "tls", "quic"] }
+    }
+  ],
+  "outbounds": [
+    { "tag": "direct", "protocol": "freedom", "settings": { "domainStrategy": "UseIP" } },
+    { "tag": "block", "protocol": "blackhole" }
+  ],
+  "routing": {
+    "rules": [
+      { "type": "field", "ip": ["geoip:private"], "outboundTag": "block" }
+    ]
+  }
+}
