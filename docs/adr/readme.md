@@ -20,3 +20,4 @@
 | 0010 | Лицензия проекта — AGPL-3.0                          | accepted |
 | 0011 | Камуфляж egress через Reality dest; DNS на egress    | accepted |
 | 0012 | Boot-секреты — ansible-vault (MMVP) / оркестратор (ph2) | accepted |
+| 0013 | Язык backend-сервисов — открытое решение               | proposed |

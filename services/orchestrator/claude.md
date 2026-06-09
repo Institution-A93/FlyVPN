@@ -1,4 +1,4 @@
-<dir name="orchestrator" role="go-service-orchestrator">
+<dir name="orchestrator" role="service-orchestrator">
   <readme href="./readme.md"/>
   <purpose>Реестр узлов, health-check, выдача секретов, ротация.</purpose>
   <invariants>

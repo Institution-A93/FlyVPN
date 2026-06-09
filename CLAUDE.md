@@ -44,7 +44,7 @@
   <invariants>
     <i>На RU ingress нет юзерских данных и нет секретов в репозитории.</i>
     <i>Любой узел воспроизводим из IaC + секретов оркестратора (никакой ручной настройки на узле).</i>
-    <i>Стек: Go для backend-сервисов, OpenTofu для облака, Ansible для конфигурации.</i>
+    <i>Инфра-стек: OpenTofu для облака, Ansible для конфигурации. Язык backend-сервисов не зафиксирован (открытое решение, ADR-0013).</i>
     <i>Только OSS-компоненты: проприетарных SaaS/софта в стеке нет (напр. GeoDNS — не Cloudflare/NS1, а OSS-вариант).</i>
     <i>Самописное минимизируем: strongSwan, FreeRADIUS, Xray-core, unbound — готовые компоненты.</i>
   </invariants>
@@ -53,8 +53,8 @@
     <e path="./docs/adr">architecture decision records — зафиксированные решения</e>
     <e path="./infra/terraform">провижн облачных ресурсов по ролям (ingress/egress/control-plane)</e>
     <e path="./infra/ansible">конфигурация узлов</e>
-    <e path="./services/config-api">Go: Plati-вебхук, генерация .mobileconfig, выдача кредов</e>
-    <e path="./services/orchestrator">Go: реестр узлов, health-check, ротация</e>
+    <e path="./services/config-api">Plati-вебхук, генерация .mobileconfig, выдача кредов</e>
+    <e path="./services/orchestrator">реестр узлов, health-check, ротация</e>
   </layout>
 
   <license id="AGPL-3.0-only" file="./LICENSE">

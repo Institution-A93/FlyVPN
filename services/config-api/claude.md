@@ -1,4 +1,4 @@
-<dir name="config-api" role="go-service-config-api">
+<dir name="config-api" role="service-config-api">
   <readme href="./readme.md"/>
   <purpose>Plati-вебхук, генерация .mobileconfig, выдача EAP-кредов.</purpose>
   <invariants>

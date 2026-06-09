@@ -92,8 +92,8 @@ Credentials туннеля выдаются оркестратором при с
 Стек:
 - **FreeRADIUS** — серверная сторона EAP-аутентификации. Слушает RADIUS-запросы от ingress через VPN-туннель или поверх TLS
 - **PostgreSQL** — основная БД (юзеры, подписки, креды)
-- **Go-приложение «config-api»** — API для генерации mobileconfig, обработка Plati-вебхуков, выдача credentials оркестратору
-- **Go-приложение «orchestrator»** — управление узлами, health-checking, secret rotation, GeoDNS update
+- **Приложение «config-api»** — API для генерации mobileconfig, обработка Plati-вебхуков, выдача credentials оркестратору
+- **Приложение «orchestrator»** — управление узлами, health-checking, secret rotation, GeoDNS update
 - **Prometheus + Grafana** (опционально на MVP, обязательно на phase 2) — метрики
 - **Loki или просто PostgreSQL** — логи (только critical events)
 
@@ -103,7 +103,7 @@ Credentials туннеля выдаются оркестратором при с
 
 ### 2.6 Оркестратор
 
-Сервис на foreign control plane, отвечающий за жизненный цикл узлов и состояние сети. На MVP — простая Go-приложение с базой состояния в Postgres и набором воркеров.
+Сервис на foreign control plane, отвечающий за жизненный цикл узлов и состояние сети. На MVP — простое приложение с базой состояния в Postgres и набором воркеров.
 
 Функции:
 
@@ -292,7 +292,7 @@ Windows нативно поддерживает IKEv2. Доставка чере
 
 ## 7. Стек и оценка трудоёмкости
 
-Языки: **Go** для backend-сервисов (config-api, orchestrator). Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, Xray-core, unbound).
+Язык backend-сервисов (config-api, orchestrator) — **открытое решение** (см. ADR-0013), не зафиксирован. Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, Xray-core, unbound).
 
 Provisioning: **OpenTofu** для cloud-ресурсов, **Ansible** для конфигурации серверов. Только OSS-компоненты (см. ADR-0009). На MVP можно без CI/CD — деплой через `make` с локальной машины.
 
