@@ -292,7 +292,7 @@ Windows нативно поддерживает IKEv2. Доставка чере
 
 ## 7. Стек и оценка трудоёмкости
 
-Язык backend-сервисов (config-api, orchestrator) — **открытое решение** (см. ADR-0013), не зафиксирован. Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, Xray-core, unbound).
+Язык backend-сервисов (config-api, orchestrator) — **Go** (см. ADR-0013). Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, Xray-core, unbound).
 
 Provisioning: **OpenTofu** для cloud-ресурсов, **Ansible** для конфигурации серверов. Только OSS-компоненты (см. ADR-0009). На MVP можно без CI/CD — деплой через `make` с локальной машины.
 
