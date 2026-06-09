@@ -6,8 +6,8 @@
 Ответственность:
 1. Приём вебхука Plati `/plati/issue` (HTTPS), валидация HMAC-подписи.
 2. Создание юзера/подписки в PostgreSQL (схема — `../db`).
-3. Генерация EAP-кредов и запись в `auth_credentials` (формат хранения пароля —
-   см. ADR-0014, т.к. EAP-MSCHAPv2 несовместим с bcrypt).
+3. Генерация EAP-кредов и запись в `auth_credentials`: username + NT-hash пароля
+   (MD4(UTF-16LE), hex) — для MSCHAPv2, не bcrypt (ADR-0014).
 4. Генерация `.mobileconfig` из шаблона с подстановкой значений.
 5. Возврат файла в ответе Plati.
 

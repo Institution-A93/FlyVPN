@@ -28,13 +28,14 @@ CREATE TABLE subscriptions (
 CREATE INDEX idx_subscriptions_user ON subscriptions (user_id);
 CREATE INDEX idx_subscriptions_expires ON subscriptions (expires_at);
 
--- EAP-креды. username — случайная строка; password только как bcrypt-хеш.
+-- EAP-креды. username — случайная строка; nt_hash = MD4(UTF-16LE(пароль)),
+-- hex, 32 симв. (NT-Password для FreeRADIUS/MSCHAPv2; bcrypt несовместим — ADR-0014).
 CREATE TABLE auth_credentials (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id       UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    username      TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL,
-    framed_ip     INET NOT NULL,            -- sticky IP из пула 10.8.0.0/14
+    id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id      UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    username     TEXT NOT NULL UNIQUE,
+    nt_hash      TEXT NOT NULL CHECK (nt_hash ~ '^[0-9a-fA-F]{32}$'),
+    framed_ip    INET NOT NULL,            -- sticky IP из пула 10.8.0.0/14
     issued_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
     revoked_at    TIMESTAMPTZ,             -- NULL = активны
     last_used_at  TIMESTAMPTZ

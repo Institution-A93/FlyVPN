@@ -11,8 +11,9 @@ golang-migrate, dbmate, Flyway, либо применяются напрямую
 ## Схема (README §4)
 `users`, `subscriptions`, `auth_credentials`, `usage_log`, `nodes`, `node_secrets`.
 
-Идентификация юзера — по `plati_buyer_id`, не по username/email. `password_hash` — только
-bcrypt. `node_secrets.secret_value` хранится зашифрованным master-ключом (вне БД).
+Идентификация юзера — по `plati_buyer_id`, не по username/email. `auth_credentials.nt_hash` —
+NT-hash (MD4) для MSCHAPv2, не bcrypt (ADR-0014). `node_secrets.secret_value` хранится
+зашифрованным master-ключом (вне БД).
 
 ## Проверка
 Применяется на PostgreSQL 16 (проверено: up создаёт 6 таблиц с FK/индексами/CHECK,

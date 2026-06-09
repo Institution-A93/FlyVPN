@@ -137,7 +137,7 @@ Credentials туннеля выдаются оркестратором при с
 2. Plati делает HTTP-запрос на наш endpoint `https://api.X.com/plati/issue?orderid=...&signature=...`
 3. `config-api` валидирует подпись Plati (HMAC)
 4. Создаёт юзера в БД (если новый), создаёт подписку с end_date = now() + срок товара
-5. Генерирует EAP credentials (username = случайная строка из 16 символов, password = bcrypt от случайной 32-символьной строки)
+5. Генерирует EAP credentials (username = случайная строка из 16 символов; password = случайная строка ≥32 символов). В БД хранится **NT-hash** пароля (MD4 от UTF-16LE) для FreeRADIUS/MSCHAPv2 — bcrypt несовместим с MSCHAPv2 (см. ADR-0014)
 6. Записывает credentials в `auth_credentials`
 7. Генерирует `.mobileconfig`-файл с подставленными значениями (см. шаблон в §4)
 8. Возвращает файл в ответ Plati — он автоматически прикладывается к покупке и отдаётся юзеру через личный кабинет на oplata.info и email от Plati
@@ -180,7 +180,7 @@ auth_credentials (
     id              UUID PRIMARY KEY,
     user_id         UUID NOT NULL REFERENCES users(id),
     username        TEXT NOT NULL UNIQUE,    -- EAP username
-    password_hash   TEXT NOT NULL,           -- bcrypt
+    nt_hash         TEXT NOT NULL,           -- NT-hash: MD4(UTF-16LE(password)), hex (ADR-0014)
     framed_ip       INET NOT NULL,           -- sticky internal IP, из пула 10.8.0.0/14
     issued_at       TIMESTAMPTZ NOT NULL,
     revoked_at      TIMESTAMPTZ,             -- null если активны
