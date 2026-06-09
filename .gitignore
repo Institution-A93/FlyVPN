@@ -11,8 +11,13 @@
 *.pfx
 id_rsa*
 secrets/
-*secret*
-*credentials*
+# Узкие паттерны под файлы секретов (без широкого *secret*, который глотает
+# легитимные исходники вроде secret_store.go и доки про секреты):
+*.secret
+*secrets.json
+*secret.json
+*credentials.json
+.credentials
 
 # --- OpenTofu / Terraform state ---
 *.tfstate
