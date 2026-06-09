@@ -14,6 +14,7 @@ variable "admin_ssh_cidrs" {
   type        = list(string)
 }
 
+# --- egress ---
 variable "egress_location" {
   description = "Локация egress-узла (Hetzner)."
   type        = string
@@ -30,4 +31,17 @@ variable "egress_reality_port" {
   description = "Порт VLESS-Reality на egress."
   type        = number
   default     = 443
+}
+
+# --- control plane ---
+variable "control_plane_location" {
+  description = "Локация control plane (стабильная юрисдикция, DE/FI)."
+  type        = string
+  default     = "fsn1"
+}
+
+variable "control_plane_server_type" {
+  description = "Тип сервера control plane."
+  type        = string
+  default     = "cx22"
 }

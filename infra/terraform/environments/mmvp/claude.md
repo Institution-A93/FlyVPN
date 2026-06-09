@@ -2,7 +2,7 @@
   <readme href="./readme.md"/>
   <purpose>Root-модуль окружения MMVP: провайдер hcloud + вызов модулей узлов.</purpose>
   <invariants>
-    <i>Сейчас поднимается только egress; control-plane/ingress добавляются модулями без переделки egress.</i>
+    <i>Поднимаются egress и control plane; ingress добавляется модулем без переделки остального.</i>
     <i>hcloud_token — sensitive, через TF_VAR_hcloud_token; в код и репозиторий не попадает.</i>
     <i>State локальный на старте, *.tfstate в .gitignore; не коммитится.</i>
   </invariants>
@@ -14,5 +14,6 @@
   </entrypoints>
   <depends-on>
     <d>../../modules/egress</d>
+    <d>../../modules/control-plane</d>
   </depends-on>
 </dir>

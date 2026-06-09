@@ -1,8 +1,8 @@
 # environment: mmvp
 
-Root-модуль OpenTofu для окружения MMVP. Сейчас поднимает **egress** на Hetzner
-(единственный доступный ресурс). control-plane и ingress добавляются модулями по мере
-реализации и появления RU-аккаунта/домена — без переделки egress.
+Root-модуль OpenTofu для окружения MMVP. Поднимает **egress** и **control plane** на
+Hetzner. ingress (Selectel) добавляется отдельным модулем по факту появления
+RU-аккаунта/домена — без переделки egress/control-plane.
 
 ## Предусловия
 - Установлен OpenTofu (`tofu`).
@@ -20,8 +20,8 @@ tofu plan
 tofu apply
 ```
 
-После apply `tofu output` отдаст `egress_public_ipv4` — его дальше скармливаешь
-Ansible-роли `egress` (inventory) и регистрируешь в оркестраторе.
+После apply `tofu output` отдаст `egress_public_ipv4` и `control_plane_public_ipv4` —
+их дальше скармливаешь Ansible (inventory) и регистрируешь в оркестраторе.
 
 ## Состояние
 На старте — локальный backend (`*.tfstate` рядом, в `.gitignore`, НЕ коммитится).
