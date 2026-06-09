@@ -1,0 +1,7 @@
+---
+# Точка входа. Прогон по ролям узлов; группы — из inventory.
+- name: Configure egress nodes
+  hosts: egress
+  become: true
+  roles:
+    - egress

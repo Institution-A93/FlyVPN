@@ -31,6 +31,9 @@ override.tf.json
 vault-password*
 host_vars/*/vault.yml
 group_vars/*/vault.yml
+# Реальный inventory: IP узлов оперативно чувствительны (вне репозитория)
+inventory.ini
+inventory/*.ini
 
 # --- Go ---
 /bin/
