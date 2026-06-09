@@ -16,8 +16,8 @@ NT-hash (MD4) для MSCHAPv2, не bcrypt (ADR-0014). `node_secrets.secret_valu
 зашифрованным master-ключом (вне БД).
 
 ## Проверка
-Применяется на PostgreSQL 16 (проверено: up создаёт 6 таблиц с FK/индексами/CHECK,
-down полностью откатывает). Локально:
+Применяется на PostgreSQL 16 (проверено: 0001 создаёт 6 таблиц с FK/индексами/CHECK,
+0002 добавляет UNIQUE на `nodes.public_ip`, down-миграции откатывают). Локально:
 ```sh
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/0001_init.up.sql
 ```
