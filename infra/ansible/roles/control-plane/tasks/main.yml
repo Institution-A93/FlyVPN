@@ -1,0 +1,129 @@
+---
+# --- Гейт: секреты обязаны быть переданы (vault, ADR-0012) ---
+- name: Проверить, что секреты БД переданы
+  ansible.builtin.assert:
+    that:
+      - cp_db_app_password | length > 0
+      - cp_db_radius_password | length > 0
+    fail_msg: >-
+      cp_db_app_password и cp_db_radius_password должны прийти из vault
+      (см. README роли и ADR-0012). В репозитории секретов нет.
+    quiet: true
+
+# --- Пакеты ---
+- name: Установить PostgreSQL, FreeRADIUS и зависимости
+  ansible.builtin.apt:
+    name:
+      - postgresql
+      - freeradius
+      - freeradius-postgresql
+      - python3-psycopg2     # для модулей community.postgresql
+    state: present
+    update_cache: true
+
+# --- Роли и БД (идемпотентно через community.postgresql) ---
+- name: Создать роль-владельца (app)
+  community.postgresql.postgresql_user:
+    name: "{{ cp_db_app_user }}"
+    password: "{{ cp_db_app_password }}"
+    login_unix_socket: /var/run/postgresql
+  become: true
+  become_user: postgres
+
+- name: Создать read-only роль для FreeRADIUS
+  community.postgresql.postgresql_user:
+    name: "{{ cp_db_radius_user }}"
+    password: "{{ cp_db_radius_password }}"
+    login_unix_socket: /var/run/postgresql
+  become: true
+  become_user: postgres
+
+- name: Создать БД (владелец — app)
+  community.postgresql.postgresql_db:
+    name: "{{ cp_db_name }}"
+    owner: "{{ cp_db_app_user }}"
+    login_unix_socket: /var/run/postgresql
+  become: true
+  become_user: postgres
+
+# --- Миграции (доставляются отдельно в cp_migrations_dir) ---
+- name: Создать каталог миграций на узле
+  ansible.builtin.file:
+    path: "{{ cp_migrations_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Доставить SQL-миграции на узел
+  ansible.builtin.copy:
+    src: "{{ cp_migrations_src }}"
+    dest: "{{ cp_migrations_dir }}/"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Проверить наличие таблицы users (применены ли миграции)
+  community.postgresql.postgresql_query:
+    db: "{{ cp_db_name }}"
+    login_unix_socket: /var/run/postgresql
+    query: "SELECT to_regclass('public.users') IS NOT NULL AS exists"
+  become: true
+  become_user: postgres
+  register: cp_schema_check
+
+- name: Применить начальную миграцию (как владелец app)
+  community.postgresql.postgresql_script:
+    db: "{{ cp_db_name }}"
+    login_user: "{{ cp_db_app_user }}"
+    login_password: "{{ cp_db_app_password }}"
+    login_host: "{{ cp_db_host }}"
+    port: "{{ cp_db_port }}"
+    path: "{{ cp_migrations_dir }}/0001_init.up.sql"
+  when: not cp_schema_check.query_result[0].exists
+
+# FreeRADIUS читает только auth_credentials → выдаём ему лишь SELECT на неё.
+- name: Выдать SELECT на auth_credentials read-only роли
+  community.postgresql.postgresql_privs:
+    db: "{{ cp_db_name }}"
+    login_unix_socket: /var/run/postgresql
+    roles: "{{ cp_db_radius_user }}"
+    type: table
+    objs: auth_credentials
+    privs: SELECT
+  become: true
+  become_user: postgres
+
+# --- FreeRADIUS ---
+- name: Настроить SQL-модуль FreeRADIUS (postgresql, наши запросы)
+  ansible.builtin.template:
+    src: sql.j2
+    dest: /etc/freeradius/3.0/mods-available/sql
+    owner: root
+    group: freerad
+    mode: "0640"
+  notify: restart freeradius
+
+- name: Включить SQL-модуль
+  ansible.builtin.file:
+    src: /etc/freeradius/3.0/mods-available/sql
+    dest: /etc/freeradius/3.0/mods-enabled/sql
+    state: link
+    owner: root
+    group: freerad
+  notify: restart freeradius
+
+- name: Развернуть clients.conf (RADIUS-клиенты — ingress-узлы)
+  ansible.builtin.template:
+    src: clients.conf.j2
+    dest: /etc/freeradius/3.0/clients.conf
+    owner: root
+    group: freerad
+    mode: "0640"
+  notify: restart freeradius
+
+- name: Включить и запустить FreeRADIUS
+  ansible.builtin.systemd:
+    name: freeradius
+    enabled: true
+    state: started

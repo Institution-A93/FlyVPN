@@ -1,0 +1,9 @@
+# Скопировать в group_vars/control/vault.yml и зашифровать (ansible-vault encrypt ...).
+# Реальный vault.yml — в .gitignore (group_vars/*/vault.yml).
+cp_db_app_password: "CHANGE-ME-app"
+cp_db_radius_password: "CHANGE-ME-radius"
+# RADIUS-клиенты = ingress-узлы (появятся позже). На MMVP можно оставить пустым.
+cp_radius_clients: []
+#  - name: ingress-msk
+#    ipaddr: 203.0.113.20
+#    secret: "CHANGE-ME-radius-client-secret"

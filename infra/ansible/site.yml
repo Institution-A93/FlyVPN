@@ -5,3 +5,9 @@
   become: true
   roles:
     - egress
+
+- name: Configure control plane
+  hosts: control
+  become: true
+  roles:
+    - control-plane
