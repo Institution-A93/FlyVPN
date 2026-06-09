@@ -11,3 +11,9 @@
   become: true
   roles:
     - control-plane
+
+- name: Configure ingress nodes
+  hosts: ingress
+  become: true
+  roles:
+    - ingress

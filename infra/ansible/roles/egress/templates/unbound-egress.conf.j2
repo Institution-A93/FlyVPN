@@ -5,7 +5,6 @@ server:
     do-ip6: yes
     do-udp: yes
     do-tcp: yes
-    # Резолвер слушает только локально — в него ходит Xray, не внешний мир.
     access-control: 0.0.0.0/0 refuse
     access-control: 127.0.0.0/8 allow
     access-control: ::1 allow

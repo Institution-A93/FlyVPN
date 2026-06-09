@@ -1,0 +1,11 @@
+eap-radius {
+    servers {
+        control-plane {
+            address = {{ ingress_radius_server }}
+            secret = {{ ingress_radius_secret }}
+            auth_port = {{ ingress_radius_auth_port }}
+            acct_port = {{ ingress_radius_acct_port }}
+        }
+    }
+    accounting = yes
+}

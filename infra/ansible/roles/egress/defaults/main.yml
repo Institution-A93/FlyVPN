@@ -1,24 +1,21 @@
 ---
-# Версия Xray-core (релиз с GitHub) и арх. Пин версии — обязателен (cattle-воспроизводимость).
-egress_xray_version: "v1.8.24"
-egress_xray_arch: "64"            # 64 = amd64 в нотации релизов Xray
-
-# --- Reality / VLESS ---
-# СЕКРЕТЫ И КЛИЕНТЫ ПРИХОДЯТ ОТ ОРКЕСТРАТОРА, не из репозитория.
-# По умолчанию пусты; tasks падают с понятной ошибкой, если не переданы.
-egress_reality_private_key: ""    # x25519 private key (от orchestrator)
-egress_reality_short_ids: []      # список shortId (от orchestrator)
-egress_clients: []                # [{id: <uuid>, email: <tag>}], от orchestrator
-
-# Камуфляж: dest — реальный сайт, у которого Reality «крадёт» TLS-хендшейк.
-# serverNames должны соответствовать dest. Конкретные значения — на усмотрение оператора.
-egress_reality_dest: "www.lovo.ai:443"
-egress_reality_server_names:
-  - "www.lovo.ai"
+# sing-box (VLESS-Reality server). Версия запинена (ADR-0015, воспроизводимость).
+egress_singbox_version: "1.10.7"
+egress_singbox_arch: "amd64"
 
 egress_listen_port: 443
-egress_xray_flow: "xtls-rprx-vision"
+egress_flow: "xtls-rprx-vision"
 
-# --- DNS на egress (unbound, рекурсивный; резолв клиентов не утекает из РФ) ---
+# Камуфляж Reality: реальный сайт-донор TLS-хендшейка (ADR-0011).
+egress_reality_server_name: "www.lovo.ai"   # SNI, который принимает сервер
+egress_reality_dest_server: "www.lovo.ai"   # куда проксируется handshake/пробинг
+egress_reality_dest_port: 443
+
+# --- СЕКРЕТЫ/КЛИЕНТЫ от оркестратора (vault, ADR-0012); по умолчанию пусты ---
+egress_reality_private_key: ""   # x25519 private key
+egress_reality_short_ids: []     # список shortId
+egress_clients: []               # [{uuid: <uuid>, name: <tag>}]
+
+# DNS: рекурсивный резолвинг клиентов на egress (unbound, только локально).
 egress_unbound_listen: "127.0.0.1"
 egress_unbound_port: 5353

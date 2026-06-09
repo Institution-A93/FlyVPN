@@ -12,3 +12,9 @@ control-mmvp ansible_host=203.0.113.11
 
 [control:vars]
 ansible_user=root
+
+[ingress]
+ingress-msk ansible_host=203.0.113.12
+
+[ingress:vars]
+ansible_user=root

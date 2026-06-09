@@ -1,7 +1,7 @@
 # services
 
 Backend-сервисы control plane. Самописное минимизируем — это тонкий слой бизнес-логики
-поверх готовых компонентов (FreeRADIUS, Xray, strongSwan).
+поверх готовых компонентов (FreeRADIUS, sing-box, strongSwan).
 
 - [`db/`](./db/readme.md) — схема PostgreSQL как plain-SQL миграции (языко-независимо).
 - [`config-api/`](./config-api/readme.md) — приём Plati-вебхука, генерация .mobileconfig, выдача кредов.

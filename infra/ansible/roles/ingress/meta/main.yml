@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  role_name: ingress
+  description: RU ingress — strongSwan (IKEv2/EAP-RADIUS) + sing-box (TUN + ASN-split)
+  license: AGPL-3.0-only
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions: [bookworm]
+dependencies: []

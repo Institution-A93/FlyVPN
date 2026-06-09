@@ -1,7 +1,7 @@
 # module: egress (Hetzner)
 
 OpenTofu-модуль. Поднимает foreign egress-узел на Hetzner Cloud: сервер + firewall.
-Дальнейшая настройка (Xray Reality-server, nginx-fallback, unbound, NAT) — ansible-роль
+Дальнейшая настройка (sing-box VLESS-Reality server, unbound) — ansible-роль
 `egress`. Конфигурация провайдера `hcloud` задаётся в окружении, не в модуле.
 
 ## Inputs

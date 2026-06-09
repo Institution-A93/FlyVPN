@@ -34,7 +34,7 @@
 - **strongSwan** — терминатор IKEv2/IPsec на UDP 500/4500
 - **FreeRADIUS client (или прокси)** — для EAP-аутентификации, проксирует к центральному RADIUS на foreign control plane
 - **nftables** — для ASN-based маршрутизации
-- **Xray-core (VLESS-Reality client)** — для туннеля к foreign egress
+- **sing-box (VLESS-Reality client + TUN)** — туннель к foreign egress и ASN-split (ADR-0015)
 - **unbound** или просто DNS-форвардер — пробрасывает DNS-запросы клиентов в туннель
 
 Логика дата-плейна:
@@ -60,7 +60,7 @@
 Сервер за пределами РФ, в юрисдикции с минимальным сотрудничеством с РФ (Нидерланды, Германия, ОАЭ, Турция — выбор зависит от latency до целевой аудитории и регулировки трафика). На старте — один узел.
 
 Стек:
-- **Xray-core (VLESS-Reality server)** — терминатор mesh-туннеля
+- **sing-box (VLESS-Reality server)** — терминатор mesh-туннеля (ADR-0015)
 - **nginx** — отдаёт «легенду» (легитимная страница) на тот же 443 порт через fallback, чтобы при попытке прямого захода на IP отвечало как реальный сайт
 - **unbound** — рекурсивный DNS-резолвер для клиентов VPN
 - **iptables/nftables** — NAT для исходящего трафика клиентов
@@ -292,14 +292,14 @@ Windows нативно поддерживает IKEv2. Доставка чере
 
 ## 7. Стек и оценка трудоёмкости
 
-Язык backend-сервисов (config-api, orchestrator) — **Go** (см. ADR-0013). Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, Xray-core, unbound).
+Язык backend-сервисов (config-api, orchestrator) — **Go** (см. ADR-0013). Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, sing-box, unbound).
 
 Provisioning: **OpenTofu** для cloud-ресурсов, **Ansible** для конфигурации серверов. Только OSS-компоненты (см. ADR-0009). На MVP можно без CI/CD — деплой через `make` с локальной машины.
 
 Оценка работы на MVP (один сеньор full-stack):
 - Foreign control plane (БД, config-api, базовый orchestrator, Plati-интеграция): 5-7 дней
-- Foreign egress (конфигурация Xray-core, NAT, unbound): 1-2 дня
-- RU ingress (strongSwan + RADIUS proxy + nftables + Xray client + ASN-roting): 3-5 дней
+- Foreign egress (конфигурация sing-box VLESS-Reality server, unbound): 1-2 дня
+- RU ingress (strongSwan + RADIUS proxy + sing-box TUN + ASN-split): 3-5 дней
 - Mobileconfig генерация и тестирование на iOS (двух актуальных версиях) и macOS (одной актуальной версии): 1-2 дня
 - Интеграция с Plati.market (регистрация продавца, тестовая транзакция, отладка): 2-3 дня
 - Health-checking и базовый failover (даже на одном узле): 1-2 дня

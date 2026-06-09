@@ -46,7 +46,7 @@
     <i>Любой узел воспроизводим из IaC + секретов оркестратора (никакой ручной настройки на узле).</i>
     <i>Инфра-стек: OpenTofu для облака, Ansible для конфигурации. Backend-сервисы — Go (ADR-0013).</i>
     <i>Только OSS-компоненты: проприетарных SaaS/софта в стеке нет (напр. GeoDNS — не Cloudflare/NS1, а OSS-вариант).</i>
-    <i>Самописное минимизируем: strongSwan, FreeRADIUS, Xray-core, unbound — готовые компоненты.</i>
+    <i>Самописное минимизируем: strongSwan, FreeRADIUS, sing-box, unbound — готовые компоненты.</i>
   </invariants>
 
   <layout>

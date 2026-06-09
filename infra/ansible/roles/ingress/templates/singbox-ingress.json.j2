@@ -1,0 +1,56 @@
+{
+  "log": { "level": "warn", "timestamp": true },
+  "dns": {
+    "servers": [
+      { "tag": "egress-dns", "address": "{{ ingress_dns_upstream }}", "detour": "vless-out" }
+    ],
+    "final": "egress-dns",
+    "strategy": "prefer_ipv4"
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "tag": "tun-in",
+      "interface_name": "{{ ingress_tun_name }}",
+      "address": ["{{ ingress_tun_addr }}"],
+      "auto_route": false,
+      "strict_route": false,
+      "stack": "system",
+      "sniff": true
+    }
+  ],
+  "outbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-out",
+      "server": "{{ ingress_egress_server }}",
+      "server_port": {{ ingress_egress_port }},
+      "uuid": "{{ ingress_reality_uuid }}",
+      "flow": "{{ ingress_flow }}",
+      "tls": {
+        "enabled": true,
+        "server_name": "{{ ingress_reality_server_name }}",
+        "utls": { "enabled": true, "fingerprint": "chrome" },
+        "reality": {
+          "enabled": true,
+          "public_key": "{{ ingress_reality_public_key }}",
+          "short_id": "{{ ingress_reality_short_id }}"
+        }
+      }
+    },
+    { "type": "direct", "tag": "direct" },
+    { "type": "dns", "tag": "dns-out" },
+    { "type": "block", "tag": "block" }
+  ],
+  "route": {
+    "rule_set": [
+      { "type": "local", "tag": "ru", "format": "binary", "path": "/var/lib/sing-box/ru.srs" }
+    ],
+    "rules": [
+      { "protocol": "dns", "outbound": "dns-out" },
+      { "ip_is_private": true, "outbound": "direct" },
+      { "rule_set": "ru", "outbound": "direct" }
+    ],
+    "final": "vless-out"
+  }
+}

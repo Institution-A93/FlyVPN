@@ -1,0 +1,46 @@
+{
+  "log": { "level": "warn", "timestamp": true },
+  "dns": {
+    "servers": [
+      { "tag": "local-unbound", "address": "{{ egress_unbound_listen }}:{{ egress_unbound_port }}", "detour": "direct" }
+    ],
+    "final": "local-unbound",
+    "strategy": "prefer_ipv4"
+  },
+  "inbounds": [
+    {
+      "type": "vless",
+      "tag": "vless-in",
+      "listen": "0.0.0.0",
+      "listen_port": {{ egress_listen_port }},
+      "sniff": true,
+      "users": [
+{% for c in egress_clients %}
+        { "uuid": "{{ c.uuid }}", "flow": "{{ egress_flow }}", "name": "{{ c.name | default('client') }}" }{{ "," if not loop.last else "" }}
+{% endfor %}
+      ],
+      "tls": {
+        "enabled": true,
+        "server_name": "{{ egress_reality_server_name }}",
+        "reality": {
+          "enabled": true,
+          "handshake": { "server": "{{ egress_reality_dest_server }}", "server_port": {{ egress_reality_dest_port }} },
+          "private_key": "{{ egress_reality_private_key }}",
+          "short_id": {{ egress_reality_short_ids | to_json }}
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    { "type": "direct", "tag": "direct" },
+    { "type": "block", "tag": "block" },
+    { "type": "dns", "tag": "dns-out" }
+  ],
+  "route": {
+    "rules": [
+      { "protocol": "dns", "outbound": "dns-out" },
+      { "ip_is_private": true, "outbound": "block" }
+    ],
+    "final": "direct"
+  }
+}
