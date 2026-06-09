@@ -1,0 +1,44 @@
+# --- Секреты и креды (НИКОГДА не коммитим) ---
+*.tfvars
+!*.tfvars.example
+*.auto.tfvars
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+secrets/
+*secret*
+*credentials*
+
+# --- OpenTofu / Terraform state ---
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# --- Ansible ---
+*.retry
+vault-password*
+host_vars/*/vault.yml
+group_vars/*/vault.yml
+
+# --- Go ---
+/bin/
+*.exe
+*.test
+*.out
+vendor/
+
+# --- Misc ---
+.DS_Store
+*.log

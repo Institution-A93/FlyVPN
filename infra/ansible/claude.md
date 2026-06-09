@@ -1,6 +1,6 @@
 <dir name="ansible" role="node-configuration">
   <readme href="./readme.md"/>
-  <purpose>Идемпотентная конфигурация узлов после провижна Terraform.</purpose>
+  <purpose>Идемпотентная конфигурация узлов после провижна OpenTofu.</purpose>
   <invariants>
     <i>Плейбуки не содержат секретов; секреты приходят от оркестратора в рантайме.</i>
     <i>Прогон идемпотентен и безопасен для cattle-узла.</i>

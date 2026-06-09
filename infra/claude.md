@@ -1,6 +1,6 @@
 <dir name="infra" role="infrastructure-as-code">
   <readme href="./readme.md"/>
-  <purpose>IaC для всех узлов: создание ресурсов (Terraform) и конфигурация (Ansible).</purpose>
+  <purpose>IaC для всех узлов: создание ресурсов (OpenTofu) и конфигурация (Ansible).</purpose>
   <invariants>
     <i>Никакой ручной настройки узла вне IaC.</i>
     <i>Секреты не коммитятся; узел получает их от оркестратора при старте.</i>

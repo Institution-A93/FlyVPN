@@ -37,13 +37,15 @@
     <d>Auth — RADIUS / EAP-MSCHAPv2: auth+accounting вынесены на control plane, RU-узел без юзерских данных.</d>
     <d>ASN-split включён с самого начала: RU-префиксы напрямую, остальное в туннель.</d>
     <d>Plati-интеграция входит в MMVP (вебхук + HMAC + генерация .mobileconfig).</d>
-    <d>IaC — first-class для обеих ролей; узлы — cattle, ротация = terraform apply.</d>
+    <d>IaC — first-class для обеих ролей; узлы — cattle, ротация = tofu apply.</d>
+    <d>Только OSS-компоненты в стеке. IaC-тул — OpenTofu (не Terraform: BUSL ≠ OSS).</d>
   </decisions>
 
   <invariants>
     <i>На RU ingress нет юзерских данных и нет секретов в репозитории.</i>
     <i>Любой узел воспроизводим из IaC + секретов оркестратора (никакой ручной настройки на узле).</i>
-    <i>Стек: Go для backend-сервисов, Terraform для облака, Ansible для конфигурации.</i>
+    <i>Стек: Go для backend-сервисов, OpenTofu для облака, Ansible для конфигурации.</i>
+    <i>Только OSS-компоненты: проприетарных SaaS/софта в стеке нет (напр. GeoDNS — не Cloudflare/NS1, а OSS-вариант).</i>
     <i>Самописное минимизируем: strongSwan, FreeRADIUS, Xray-core, unbound — готовые компоненты.</i>
   </invariants>
 

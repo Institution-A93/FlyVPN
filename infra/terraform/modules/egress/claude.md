@@ -1,6 +1,6 @@
 <dir name="egress" role="tf-module-egress">
   <readme href="./readme.md"/>
-  <purpose>Terraform-модуль foreign egress на Hetzner.</purpose>
+  <purpose>OpenTofu-модуль foreign egress на Hetzner.</purpose>
   <invariants>
     <i>На egress нет аккаунтинга и привязки к юзеру — узел не знает, кто через него ходит.</i>
   </invariants>

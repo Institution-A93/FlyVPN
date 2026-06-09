@@ -1,6 +1,6 @@
 <dir name="ingress" role="tf-module-ingress">
   <readme href="./readme.md"/>
-  <purpose>Terraform-модуль RU ingress на Selectel.</purpose>
+  <purpose>OpenTofu-модуль RU ingress на Selectel.</purpose>
   <invariants>
     <i>Открыты только нужные порты IKEv2; никакого юзерского состояния на диске вне FDE.</i>
   </invariants>

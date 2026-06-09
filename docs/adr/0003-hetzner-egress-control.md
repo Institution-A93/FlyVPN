@@ -5,7 +5,7 @@
 
 ## Контекст
 В наличии аккаунт зарубежного хостера — Hetzner (подтверждено: git.a93.dev на
-AS24940 Hetzner, FI). Нужен Terraform-провайдер под зарубежные узлы.
+AS24940 Hetzner, FI). Нужен OpenTofu-провайдер под зарубежные узлы.
 
 ## Решение
 Foreign egress и foreign control plane провижим на Hetzner Cloud через провайдер
