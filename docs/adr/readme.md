@@ -17,3 +17,4 @@
 | 0007 | Plati-интеграция входит в MMVP                        | accepted |
 | 0008 | Конвенция документации (readme.md + claude.md)       | accepted |
 | 0009 | Только OSS-компоненты; IaC-тул — OpenTofu            | accepted |
+| 0010 | Лицензия проекта — AGPL-3.0                          | accepted |

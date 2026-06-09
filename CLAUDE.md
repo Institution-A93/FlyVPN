@@ -57,6 +57,11 @@
     <e path="./services/orchestrator">Go: реестр узлов, health-check, ротация</e>
   </layout>
 
+  <license id="AGPL-3.0-only" file="./LICENSE">
+    <rule>Распространение свободно; модификации, отдаваемые как сетевой сервис, должны быть открыты (AGPL §13). См. ADR-0010.</rule>
+    <rule>Открыт КОД, не боевая операционка: IP узлов, SNI-cover, анти-DPI параметры, секреты — вне репозитория.</rule>
+  </license>
+
   <git>
     <branch>claude/kind-pasteur-2IMEz</branch>
     <rule>Разработка и пуш — только в эту ветку.</rule>
