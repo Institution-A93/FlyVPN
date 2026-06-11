@@ -18,7 +18,7 @@ variable "location" {
 variable "server_type" {
   description = "Тип сервера Hetzner."
   type        = string
-  default     = "cx22"
+  default     = "cpx21"
 }
 
 variable "image" {

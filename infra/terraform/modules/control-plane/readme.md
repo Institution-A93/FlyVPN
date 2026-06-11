@@ -10,7 +10,7 @@ OpenTofu-модуль. Поднимает foreign control plane на Hetzner Clo
 |-------------------|----------------|--------------|------------|
 | `name`            | string         | `control`    | имя узла |
 | `location`        | string         | `fsn1`       | локация (control plane — стабильная юрисдикция DE/FI) |
-| `server_type`     | string         | `cx22`       | тип сервера |
+| `server_type`     | string         | `cpx21`       | тип сервера |
 | `image`           | string         | `debian-12`  | образ ОС |
 | `ssh_key_names`   | list(string)   | —            | имена SSH-ключей (обязательно) |
 | `admin_ssh_cidrs` | list(string)   | —            | CIDR для SSH (обязательно) |

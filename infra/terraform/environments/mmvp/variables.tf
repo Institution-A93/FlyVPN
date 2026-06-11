@@ -25,7 +25,7 @@ variable "egress_location" {
 variable "egress_server_type" {
   description = "Тип сервера egress."
   type        = string
-  default     = "cx22"
+  default     = "cpx11" # AMD x86, 2 vCPU/2GB — sing-box (cx22 Intel недоступен в проекте)
 }
 
 variable "egress_reality_port" {
@@ -44,5 +44,5 @@ variable "control_plane_location" {
 variable "control_plane_server_type" {
   description = "Тип сервера control plane."
   type        = string
-  default     = "cx22"
+  default     = "cpx21" # AMD x86, 3 vCPU/4GB — сборка Go + Postgres + FreeRADIUS
 }
