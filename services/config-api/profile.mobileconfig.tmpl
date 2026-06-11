@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Шаблон Apple Configuration Profile для IKEv2 + EAP-MSCHAPv2 (iOS/macOS).
+  Языко-независимый: токены вида {{NAME}} подставляет config-api (любой язык —
+  простой replace или шаблонизатор). Список токенов — в readme config-api.
+
+  Валидация на устройстве: серверный сертификат публично-подписан (Let's Encrypt),
+  RemoteIdentifier = его CN/домен. При частном CA — добавить payload с CA-сертом.
+-->
+<plist version="1.0">
+<dict>
+  <key>PayloadType</key>            <string>Configuration</string>
+  <key>PayloadVersion</key>         <integer>1</integer>
+  <key>PayloadIdentifier</key>      <string>{{PROFILE_IDENTIFIER}}</string>
+  <key>PayloadUUID</key>            <string>{{PROFILE_UUID}}</string>
+  <key>PayloadDisplayName</key>     <string>{{DISPLAY_NAME}}</string>
+  <key>PayloadOrganization</key>    <string>{{ORG_NAME}}</string>
+  <key>PayloadRemovalDisallowed</key> <false/>
+  <key>PayloadContent</key>
+  <array>
+    <dict>
+      <key>PayloadType</key>        <string>com.apple.vpn.managed</string>
+      <key>PayloadVersion</key>     <integer>1</integer>
+      <key>PayloadIdentifier</key>  <string>{{PROFILE_IDENTIFIER}}.vpn</string>
+      <key>PayloadUUID</key>        <string>{{PAYLOAD_UUID}}</string>
+      <key>PayloadDisplayName</key> <string>{{DISPLAY_NAME}}</string>
+      <key>UserDefinedName</key>    <string>{{DISPLAY_NAME}}</string>
+      <key>VPNType</key>            <string>IKEv2</string>
+      <key>IKEv2</key>
+      <dict>
+        <key>RemoteAddress</key>           <string>{{VPN_REMOTE_ADDRESS}}</string>
+        <key>RemoteIdentifier</key>        <string>{{VPN_REMOTE_IDENTIFIER}}</string>
+        <key>LocalIdentifier</key>         <string>{{EAP_USERNAME}}</string>
+        <!-- AuthenticationMethod=None + ExtendedAuthEnabled=1 => EAP (MSCHAPv2) -->
+        <key>AuthenticationMethod</key>    <string>None</string>
+        <key>ExtendedAuthEnabled</key>     <integer>1</integer>
+        <key>AuthName</key>                <string>{{EAP_USERNAME}}</string>
+        <key>AuthPassword</key>            <string>{{EAP_PASSWORD}}</string>
+        <key>ServerCertificateIssuerCommonName</key> <string>{{SERVER_CA_CN}}</string>
+        <key>DeadPeerDetectionRate</key>   <string>Medium</string>
+        <key>DisableMOBIKE</key>           <integer>0</integer>
+        <key>DisableRedirect</key>         <integer>0</integer>
+        <key>EnablePFS</key>               <integer>1</integer>
+        <key>IKESecurityAssociationParameters</key>
+        <dict>
+          <key>EncryptionAlgorithm</key> <string>AES-256-GCM</string>
+          <key>IntegrityAlgorithm</key>  <string>SHA2-256</string>
+          <key>DiffieHellmanGroup</key>  <integer>19</integer>
+          <key>LifeTimeInMinutes</key>   <integer>1440</integer>
+        </dict>
+        <key>ChildSecurityAssociationParameters</key>
+        <dict>
+          <key>EncryptionAlgorithm</key> <string>AES-256-GCM</string>
+          <key>IntegrityAlgorithm</key>  <string>SHA2-256</string>
+          <key>DiffieHellmanGroup</key>  <integer>19</integer>
+          <key>LifeTimeInMinutes</key>   <integer>1440</integer>
+        </dict>
+      </dict>
+      <!-- OnDemand (авто-подключение) — опционально, phase 2. Включается отдельным
+           ключом OnDemandEnabled + OnDemandRules. На MMVP не задаём. -->
+    </dict>
+  </array>
+</dict>
+</plist>

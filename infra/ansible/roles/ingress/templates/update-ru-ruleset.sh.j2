@@ -1,0 +1,22 @@
+#!/bin/sh
+# Сборка sing-box rule_set RU-префиксов из OSS-источников (ADR-0006/0015).
+set -eu
+SRC_JSON="$(mktemp)"
+CIDRS="$(mktemp)"
+trap 'rm -f "$SRC_JSON" "$CIDRS"' EXIT
+
+{% for url in ingress_ru_sources %}
+curl -fsSL "{{ url }}" >> "$CIDRS" || true
+{% endfor %}
+
+# Оставляем только строки-CIDR/одиночные IP (грубый фильтр).
+grep -oE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?' "$CIDRS" | sort -u > "$CIDRS.clean"
+
+python3 - "$CIDRS.clean" > "$SRC_JSON" <<'PY'
+import json, sys
+cidrs=[l.strip() for l in open(sys.argv[1]) if l.strip()]
+print(json.dumps({"version":1,"rules":[{"ip_cidr":cidrs}]}))
+PY
+
+/usr/local/bin/sing-box rule-set compile --output /var/lib/sing-box/ru.srs "$SRC_JSON"
+echo "ru.srs обновлён: $(wc -l < "$CIDRS.clean") префиксов"

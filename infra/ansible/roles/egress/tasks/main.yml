@@ -1,0 +1,74 @@
+---
+- name: Проверить, что секреты/клиенты Reality переданы
+  ansible.builtin.assert:
+    that:
+      - egress_reality_private_key | length > 0
+      - egress_clients | length > 0
+    fail_msg: >-
+      egress_reality_private_key и egress_clients должны прийти от оркестратора
+      (vault). В репозитории секретов нет — см. README роли.
+    quiet: true
+
+- name: Установить системные пакеты
+  ansible.builtin.apt:
+    name: [ca-certificates, curl, unbound]
+    state: present
+    update_cache: true
+
+- name: Скачать sing-box (релиз с GitHub)
+  ansible.builtin.unarchive:
+    src: "https://github.com/SagerNet/sing-box/releases/download/v{{ egress_singbox_version }}/sing-box-{{ egress_singbox_version }}-linux-{{ egress_singbox_arch }}.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    extra_opts: ["--strip-components=1", "--wildcards", "*/sing-box"]
+    creates: "/usr/local/bin/sing-box"
+  notify: restart sing-box
+
+- name: Каталог конфигурации sing-box
+  ansible.builtin.file:
+    path: /etc/sing-box
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: Конфиг sing-box (VLESS-Reality server)
+  ansible.builtin.template:
+    src: singbox-egress.json.j2
+    dest: /etc/sing-box/config.json
+    owner: root
+    group: root
+    mode: "0640"
+    validate: "/usr/local/bin/sing-box check -c %s"
+  notify: restart sing-box
+
+- name: systemd-юнит sing-box
+  ansible.builtin.template:
+    src: sing-box.service.j2
+    dest: /etc/systemd/system/sing-box.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart sing-box
+
+- name: Конфиг unbound (рекурсивный, только локально)
+  ansible.builtin.template:
+    src: unbound-egress.conf.j2
+    dest: /etc/unbound/unbound.conf.d/egress.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart unbound
+
+- name: Включить и запустить unbound
+  ansible.builtin.systemd:
+    name: unbound
+    enabled: true
+    state: started
+
+- name: Включить и запустить sing-box
+  ansible.builtin.systemd:
+    name: sing-box
+    enabled: true
+    state: started
+    daemon_reload: true

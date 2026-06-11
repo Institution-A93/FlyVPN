@@ -1,0 +1,17 @@
+[Unit]
+Description=orchestrator (node registry, health-checks)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=smartinternet
+EnvironmentFile=/etc/smartinternet/orchestrator.env
+ExecStart=/usr/local/bin/orchestrator
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

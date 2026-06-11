@@ -1,0 +1,52 @@
+# --- Секреты и креды (НИКОГДА не коммитим) ---
+*.tfvars
+!*.tfvars.example
+*.auto.tfvars
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+secrets/
+# Узкие паттерны под файлы секретов (без широкого *secret*, который глотает
+# легитимные исходники вроде secret_store.go и доки про секреты):
+*.secret
+*secrets.json
+*secret.json
+*credentials.json
+.credentials
+
+# --- OpenTofu / Terraform state ---
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# --- Ansible ---
+*.retry
+vault-password*
+host_vars/*/vault.yml
+group_vars/*/vault.yml
+# Реальный inventory: IP узлов оперативно чувствительны (вне репозитория)
+inventory.ini
+inventory/*.ini
+
+# --- Go ---
+/bin/
+*.exe
+*.test
+*.out
+vendor/
+
+# --- Misc ---
+.DS_Store
+*.log

@@ -1,0 +1,15 @@
+# Скопировать в group_vars/ingress/vault.yml и зашифровать (ansible-vault encrypt ...).
+# Реальный vault.yml — в .gitignore (group_vars/*/vault.yml). На phase 2 подаёт оркестратор.
+
+# Reality-клиент к egress (public_key/short_id/uuid соответствуют egress).
+ingress_egress_server: "203.0.113.50"
+ingress_reality_uuid: "CHANGE-ME-uuid"
+ingress_reality_public_key: "CHANGE-ME-reality-public-key"
+ingress_reality_short_id: "0123abcd"
+
+# RADIUS на control plane (тот же secret, что в clients.conf control-plane).
+ingress_radius_server: "203.0.113.11"
+ingress_radius_secret: "CHANGE-ME-radius-client-secret"
+
+# id сервера IKEv2 (CN серверного серта).
+ingress_vpn_id: "vpn.example.com"

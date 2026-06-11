@@ -1,0 +1,10 @@
+# Скопировать в terraform.tfvars (он в .gitignore) ИЛИ экспортировать как TF_VAR_*.
+# hcloud_token задавать через переменную окружения:
+#   export TF_VAR_hcloud_token=xxxxxxxx
+# а не через файл.
+
+ssh_key_names   = ["my-laptop"]
+admin_ssh_cidrs = ["203.0.113.4/32"] # IP, с которого ходишь по SSH
+
+egress_location        = "hel1" # Helsinki
+control_plane_location = "fsn1" # Falkenstein, DE

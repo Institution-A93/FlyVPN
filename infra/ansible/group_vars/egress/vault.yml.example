@@ -1,0 +1,12 @@
+# Скопировать в group_vars/egress/vault.yml и зашифровать:
+#   ansible-vault encrypt group_vars/egress/vault.yml
+# Реальный vault.yml — в .gitignore (group_vars/*/vault.yml).
+# На phase 2 эти значения генерирует и подаёт оркестратор (см. ADR-0012),
+# контракт переменных роли при этом не меняется.
+
+egress_reality_private_key: "PUT-X25519-PRIVATE-KEY-HERE"
+egress_reality_short_ids:
+  - "0123abcd"
+egress_clients:
+  - id: "00000000-0000-0000-0000-000000000000"
+    email: "client-1"

@@ -1,0 +1,76 @@
+name: deploy
+on:
+  push:
+    branches: [main]
+    paths: ["infra/**", "services/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: deploy-mmvp
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production   # требует ревью/одобрения (защита деплоя)
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
+      TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
+      TF_VAR_ssh_key_names: '["${{ vars.SSH_KEY_NAME }}"]'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.8.5"
+
+      - name: OpenTofu apply
+        working-directory: infra/terraform/environments/mmvp
+        run: |
+          tofu init -input=false
+          tofu apply -input=false -auto-approve
+          {
+            echo "EGRESS_IP=$(tofu output -raw egress_public_ipv4)"
+            echo "CONTROL_IP=$(tofu output -raw control_plane_public_ipv4)"
+          } >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core
+          ansible-galaxy collection install -r infra/ansible/requirements.yml
+
+      - name: Materialize secrets & inventory
+        working-directory: infra/ansible
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          EGRESS_VAULT: ${{ secrets.EGRESS_VAULT }}
+          CONTROL_VAULT: ${{ secrets.CONTROL_VAULT }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          mkdir -p group_vars/egress group_vars/control
+          printf '%s\n' "$EGRESS_VAULT"  > group_vars/egress/vault.yml
+          printf '%s\n' "$CONTROL_VAULT" > group_vars/control/vault.yml
+          cat > inventory.ini <<INV
+          [egress]
+          egress ansible_host=${EGRESS_IP}
+          [control]
+          control ansible_host=${CONTROL_IP}
+          [all:vars]
+          ansible_user=root
+          ansible_ssh_private_key_file=~/.ssh/deploy
+          ansible_ssh_common_args=-o StrictHostKeyChecking=accept-new
+          INV
+
+      - name: Ansible (egress + control; ingress — в Selectel-фазе)
+        working-directory: infra/ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: ansible-playbook site.yml --limit 'egress:control'

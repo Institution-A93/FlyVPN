@@ -1,0 +1,130 @@
+---
+- name: Проверить, что секреты/параметры переданы (vault)
+  ansible.builtin.assert:
+    that:
+      - ingress_egress_server | length > 0
+      - ingress_reality_uuid | length > 0
+      - ingress_reality_public_key | length > 0
+      - ingress_radius_server | length > 0
+      - ingress_radius_secret | length > 0
+    fail_msg: "Параметры Reality/egress и RADIUS должны прийти от оркестратора (vault)."
+    quiet: true
+
+- name: Установить strongSwan и зависимости
+  ansible.builtin.apt:
+    name:
+      - strongswan
+      - strongswan-swanctl
+      - libcharon-extra-plugins   # eap-radius
+      - libstrongswan-extra-plugins
+      - curl
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Скачать sing-box
+  ansible.builtin.unarchive:
+    src: "https://github.com/SagerNet/sing-box/releases/download/v{{ ingress_singbox_version }}/sing-box-{{ ingress_singbox_version }}-linux-{{ ingress_singbox_arch }}.tar.gz"
+    dest: /usr/local/bin
+    remote_src: true
+    extra_opts: ["--strip-components=1", "--wildcards", "*/sing-box"]
+    creates: "/usr/local/bin/sing-box"
+  notify: restart sing-box
+
+- name: Включить ip_forward (хост форвардит клиентский трафик в TUN)
+  ansible.posix.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    sysctl_set: true
+    state: present
+    reload: true
+
+# --- sing-box ---
+- name: Каталоги sing-box
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop: ["/etc/sing-box", "/var/lib/sing-box"]
+
+- name: Updater RU rule_set
+  ansible.builtin.template:
+    src: update-ru-ruleset.sh.j2
+    dest: /usr/local/sbin/update-ru-ruleset.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Первичная сборка RU rule_set (если ещё нет)
+  ansible.builtin.command: /usr/local/sbin/update-ru-ruleset.sh
+  args:
+    creates: /var/lib/sing-box/ru.srs
+
+- name: Таймер обновления RU rule_set (раз в сутки)
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "/etc/systemd/system/{{ item.dst }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: ru-ruleset.service.j2, dst: ru-ruleset.service }
+    - { src: ru-ruleset.timer.j2, dst: ru-ruleset.timer }
+
+- name: Конфиг sing-box (TUN + Reality client + ASN-split)
+  ansible.builtin.template:
+    src: singbox-ingress.json.j2
+    dest: /etc/sing-box/config.json
+    owner: root
+    group: root
+    mode: "0640"
+    validate: "/usr/local/bin/sing-box check -c %s"
+  notify: restart sing-box
+
+- name: systemd-юнит sing-box
+  ansible.builtin.template:
+    src: sing-box.service.j2
+    dest: /etc/systemd/system/sing-box.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart sing-box
+
+- name: systemd-юнит policy-routing клиентского трафика в TUN
+  ansible.builtin.template:
+    src: mesh-route.service.j2
+    dest: /etc/systemd/system/mesh-route.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart mesh-route
+
+# --- strongSwan ---
+- name: swanctl.conf (IKEv2 + EAP-RADIUS)
+  ansible.builtin.template:
+    src: swanctl.conf.j2
+    dest: /etc/swanctl/swanctl.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: reload swanctl
+
+- name: Конфиг плагина eap-radius (control plane)
+  ansible.builtin.template:
+    src: eap-radius.conf.j2
+    dest: /etc/strongswan.d/charon/eap-radius.conf
+    owner: root
+    group: root
+    mode: "0640"
+  notify: reload swanctl
+
+# --- Запуск ---
+- name: Включить сервисы
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: [sing-box, mesh-route, "ru-ruleset.timer", strongswan]

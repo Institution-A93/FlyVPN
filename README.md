@@ -34,7 +34,7 @@
 - **strongSwan** — терминатор IKEv2/IPsec на UDP 500/4500
 - **FreeRADIUS client (или прокси)** — для EAP-аутентификации, проксирует к центральному RADIUS на foreign control plane
 - **nftables** — для ASN-based маршрутизации
-- **Xray-core (VLESS-Reality client)** — для туннеля к foreign egress
+- **sing-box (VLESS-Reality client + TUN)** — туннель к foreign egress и ASN-split (ADR-0015)
 - **unbound** или просто DNS-форвардер — пробрасывает DNS-запросы клиентов в туннель
 
 Логика дата-плейна:
@@ -60,7 +60,7 @@
 Сервер за пределами РФ, в юрисдикции с минимальным сотрудничеством с РФ (Нидерланды, Германия, ОАЭ, Турция — выбор зависит от latency до целевой аудитории и регулировки трафика). На старте — один узел.
 
 Стек:
-- **Xray-core (VLESS-Reality server)** — терминатор mesh-туннеля
+- **sing-box (VLESS-Reality server)** — терминатор mesh-туннеля (ADR-0015)
 - **nginx** — отдаёт «легенду» (легитимная страница) на тот же 443 порт через fallback, чтобы при попытке прямого захода на IP отвечало как реальный сайт
 - **unbound** — рекурсивный DNS-резолвер для клиентов VPN
 - **iptables/nftables** — NAT для исходящего трафика клиентов
@@ -92,8 +92,8 @@ Credentials туннеля выдаются оркестратором при с
 Стек:
 - **FreeRADIUS** — серверная сторона EAP-аутентификации. Слушает RADIUS-запросы от ingress через VPN-туннель или поверх TLS
 - **PostgreSQL** — основная БД (юзеры, подписки, креды)
-- **Go-приложение «config-api»** — API для генерации mobileconfig, обработка Plati-вебхуков, выдача credentials оркестратору
-- **Go-приложение «orchestrator»** — управление узлами, health-checking, secret rotation, GeoDNS update
+- **Приложение «config-api»** — API для генерации mobileconfig, обработка Plati-вебхуков, выдача credentials оркестратору
+- **Приложение «orchestrator»** — управление узлами, health-checking, secret rotation, GeoDNS update
 - **Prometheus + Grafana** (опционально на MVP, обязательно на phase 2) — метрики
 - **Loki или просто PostgreSQL** — логи (только critical events)
 
@@ -103,7 +103,7 @@ Credentials туннеля выдаются оркестратором при с
 
 ### 2.6 Оркестратор
 
-Сервис на foreign control plane, отвечающий за жизненный цикл узлов и состояние сети. На MVP — простая Go-приложение с базой состояния в Postgres и набором воркеров.
+Сервис на foreign control plane, отвечающий за жизненный цикл узлов и состояние сети. На MVP — простое приложение с базой состояния в Postgres и набором воркеров.
 
 Функции:
 
@@ -116,9 +116,9 @@ Credentials туннеля выдаются оркестратором при с
    
    При трёх подряд неудачах — узел помечается `down`, GeoDNS обновляется.
 
-3. **GeoDNS update.** При изменении статуса узла оркестратор пушит обновление в DNS-провайдер через API. Используем **Cloudflare Load Balancing** (предпочтительно — встроенные health-checks + geo-routing) или **NS1**. TTL DNS-записи — 60 секунд.
+3. **GeoDNS update.** При изменении статуса узла оркестратор пушит обновление в DNS-провайдер через API. TTL DNS-записи — 60 секунд. _Под принцип «только OSS» (ADR-0009) проприетарные Cloudflare Load Balancing / NS1 не используем — на phase 2 берём OSS-вариант (напр. PowerDNS + health-checks оркестратора). На MMVP GeoDNS не нужен (один узел)._
 
-4. **Provisioning.** Terraform-модули для поднятия новых узлов. Оркестратор может вызвать `terraform apply` (через CI/CD pipeline или напрямую через cloud-провайдер API) для увеличения количества ingress в момент когда нужно. На MVP — ручной запуск; автоматизация на phase 2.
+4. **Provisioning.** OpenTofu-модули для поднятия новых узлов. Оркестратор может вызвать `tofu apply` (через CI/CD pipeline или напрямую через cloud-провайдер API) для увеличения количества ingress в момент когда нужно. На MVP — ручной запуск; автоматизация на phase 2.
 
 5. **Secret rotation.** Раз в неделю генерирует новые Reality keys, пушит их на соответствующую пару узлов через защищённый канал (ssh + ansible-playbook). На MVP — раз в месяц вручную; автоматизация на phase 2.
 
@@ -137,7 +137,7 @@ Credentials туннеля выдаются оркестратором при с
 2. Plati делает HTTP-запрос на наш endpoint `https://api.X.com/plati/issue?orderid=...&signature=...`
 3. `config-api` валидирует подпись Plati (HMAC)
 4. Создаёт юзера в БД (если новый), создаёт подписку с end_date = now() + срок товара
-5. Генерирует EAP credentials (username = случайная строка из 16 символов, password = bcrypt от случайной 32-символьной строки)
+5. Генерирует EAP credentials (username = случайная строка из 16 символов; password = случайная строка ≥32 символов). В БД хранится **NT-hash** пароля (MD4 от UTF-16LE) для FreeRADIUS/MSCHAPv2 — bcrypt несовместим с MSCHAPv2 (см. ADR-0014)
 6. Записывает credentials в `auth_credentials`
 7. Генерирует `.mobileconfig`-файл с подставленными значениями (см. шаблон в §4)
 8. Возвращает файл в ответ Plati — он автоматически прикладывается к покупке и отдаётся юзеру через личный кабинет на oplata.info и email от Plati
@@ -146,7 +146,7 @@ Credentials туннеля выдаются оркестратором при с
 
 ## 3. Внешние зависимости
 
-- **DNS** — Cloudflare (Load Balancing с geo-routing) или NS1. Один основной домен `X.com`, поддомен `vpn.X.com` для VPN ingress, `api.X.com` для Plati-вебхука
+- **DNS** — OSS-вариант с geo-routing (напр. PowerDNS), не проприетарные Cloudflare/NS1 (см. ADR-0009). Один основной домен `X.com`, поддомен `vpn.X.com` для VPN ingress, `api.X.com` для Plati-вебхука
 - **Cloud провайдеры для RU ingress** — минимум два разных хостера на старте, в перспективе 5-7. Selectel, Reg.ru, Timeweb, Beget, FirstVDS — кандидаты. Регистрация через прокладку (не на основное юрлицо)
 - **Cloud для foreign egress** — Hetzner, OVH, DigitalOcean, AWS. Желательно не на тех же провайдерах что ingress (избегаем коллапса при региональных проблемах)
 - **Cloud для foreign control plane** — один из вышеперечисленных, в стабильной юрисдикции (Германия / Нидерланды)
@@ -180,7 +180,7 @@ auth_credentials (
     id              UUID PRIMARY KEY,
     user_id         UUID NOT NULL REFERENCES users(id),
     username        TEXT NOT NULL UNIQUE,    -- EAP username
-    password_hash   TEXT NOT NULL,           -- bcrypt
+    nt_hash         TEXT NOT NULL,           -- NT-hash: MD4(UTF-16LE(password)), hex (ADR-0014)
     framed_ip       INET NOT NULL,           -- sticky internal IP, из пула 10.8.0.0/14
     issued_at       TIMESTAMPTZ NOT NULL,
     revoked_at      TIMESTAMPTZ,             -- null если активны
@@ -292,14 +292,14 @@ Windows нативно поддерживает IKEv2. Доставка чере
 
 ## 7. Стек и оценка трудоёмкости
 
-Языки: **Go** для backend-сервисов (config-api, orchestrator). Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, Xray-core, unbound).
+Язык backend-сервисов (config-api, orchestrator) — **Go** (см. ADR-0013). Самописное минимизируем, по максимуму используем готовые компоненты (strongSwan, FreeRADIUS, sing-box, unbound).
 
-Provisioning: **Terraform** для cloud-ресурсов, **Ansible** для конфигурации серверов. На MVP можно без CI/CD — деплой через `make` с локальной машины.
+Provisioning: **OpenTofu** для cloud-ресурсов, **Ansible** для конфигурации серверов. Только OSS-компоненты (см. ADR-0009). На MVP можно без CI/CD — деплой через `make` с локальной машины.
 
 Оценка работы на MVP (один сеньор full-stack):
 - Foreign control plane (БД, config-api, базовый orchestrator, Plati-интеграция): 5-7 дней
-- Foreign egress (конфигурация Xray-core, NAT, unbound): 1-2 дня
-- RU ingress (strongSwan + RADIUS proxy + nftables + Xray client + ASN-roting): 3-5 дней
+- Foreign egress (конфигурация sing-box VLESS-Reality server, unbound): 1-2 дня
+- RU ingress (strongSwan + RADIUS proxy + sing-box TUN + ASN-split): 3-5 дней
 - Mobileconfig генерация и тестирование на iOS (двух актуальных версиях) и macOS (одной актуальной версии): 1-2 дня
 - Интеграция с Plati.market (регистрация продавца, тестовая транзакция, отладка): 2-3 дня
 - Health-checking и базовый failover (даже на одном узле): 1-2 дня
@@ -311,11 +311,17 @@ Provisioning: **Terraform** для cloud-ресурсов, **Ansible** для к
 ## 8. Ключевые риски
 
 1. **Plati.market откажет в регистрации продавца / закроет аккаунт после старта.** Митигация: иметь Rocketr.net или аналог как backup; легенда продукта — «оптимизация сетевого подключения», а не «обход блокировок»
-2. **RU ingress IP получит targeted-блок от ТСПУ.** Митигация: иметь готовый Terraform-модуль для быстрого поднятия нового узла на другом хостере; на MVP можем себе позволить ручное переключение; на phase 2 — автоматический failover через GeoDNS
+2. **RU ingress IP получит targeted-блок от ТСПУ.** Митигация: иметь готовый OpenTofu-модуль для быстрого поднятия нового узла на другом хостере; на MVP можем себе позволить ручное переключение; на phase 2 — автоматический failover через GeoDNS
 3. **Foreign egress будет идентифицирован и заблокирован по IP/SNI.** Митигация: реалистичный SNI cover на Reality + nginx fallback с настоящим контентом; ротация Reality keys; план Б — несколько egress на разных провайдерах
 4. **Утечка серверного приватного ключа IKEv2 (одного из RU ingress изъяли).** Митигация: PFS у IKEv2 защищает прошлые сессии; ротация серверного серта при инциденте; FDE снижает шанс утечки
 5. **Регуляторное давление на самого юзера (рекламы VPN запрещены в РФ).** Митигация: маркетинг через word-of-mouth и Telegram-каналы, не публично; продукт позиционируется как «информационный сервис»
 
 ---
 
-Документ — стартовая точка. Конкретные технологические выборы (RADIUS-конфиг, точная схема nftables, выбор Cloudflare vs NS1) — на усмотрение тех-лида, выше описана архитектура и контракты между компонентами.
+Документ — стартовая точка. Конкретные технологические выборы (RADIUS-конфиг, точная схема nftables, выбор OSS GeoDNS-провайдера) — на усмотрение тех-лида, выше описана архитектура и контракты между компонентами.
+
+## Лицензия
+
+Проект распространяется под **[AGPL-3.0](./LICENSE)** (см. [ADR-0010](./docs/adr/0010-license-agpl-3.0.md)). Запуск, форк и коммерческое использование свободны; модификации, отдаваемые как сетевой сервис, должны быть открыты (AGPL §13).
+
+Открыт **код**, а не боевая операционка: IP узлов, актуальные SNI-cover домены Reality, конкретные анти-DPI параметры и любые секреты остаются вне репозитория.

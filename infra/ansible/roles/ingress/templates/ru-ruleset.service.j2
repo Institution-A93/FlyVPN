@@ -1,0 +1,9 @@
+[Unit]
+Description=Обновление RU rule_set для sing-box
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/update-ru-ruleset.sh
+ExecStartPost=/bin/systemctl reload-or-restart sing-box

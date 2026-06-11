@@ -1,0 +1,20 @@
+# Скопировать в inventory.ini (он в .gitignore — IP узлов оперативно чувствительны,
+# вне репозитория). IP берётся из `tofu output egress_public_ipv4`.
+
+[egress]
+egress-mmvp ansible_host=203.0.113.10
+
+[egress:vars]
+ansible_user=root
+
+[control]
+control-mmvp ansible_host=203.0.113.11
+
+[control:vars]
+ansible_user=root
+
+[ingress]
+ingress-msk ansible_host=203.0.113.12
+
+[ingress:vars]
+ansible_user=root

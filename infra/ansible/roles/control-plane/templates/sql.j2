@@ -1,0 +1,38 @@
+# FreeRADIUS SQL-модуль. Аутентификация EAP-MSCHAPv2 по NT-hash из auth_credentials.
+# Проверено на FreeRADIUS 3.2.5 + PostgreSQL 16 (Access-Accept + Framed-IP, отзыв через
+# revoked_at). Управляется Ansible — править здесь.
+sql {
+    dialect = "{{ cp_freeradius_dialect }}"
+    driver  = "rlm_sql_${dialect}"
+
+    server   = "{{ cp_db_host }}"
+    port     = {{ cp_db_port }}
+    login    = "{{ cp_db_radius_user }}"
+    password = "{{ cp_db_radius_password }}"
+    radius_db = "{{ cp_db_name }}"
+
+    read_clients = no
+{% raw %}
+    sql_user_name = "%{%{Stripped-User-Name}:-%{User-Name}}"
+
+    # NT-Password из auth_credentials, только не отозванные.
+    authorize_check_query = "SELECT 0 AS id, username AS username, 'NT-Password' AS attribute, '0x' || nt_hash AS value, ':=' AS op FROM auth_credentials WHERE username = '%{SQL-User-Name}' AND revoked_at IS NULL"
+
+    # Sticky Framed-IP-Address.
+    authorize_reply_query = "SELECT 0 AS id, username AS username, 'Framed-IP-Address' AS attribute, host(framed_ip) AS value, '=' AS op FROM auth_credentials WHERE username = '%{SQL-User-Name}' AND revoked_at IS NULL"
+
+    # Группы не используем.
+    authorize_group_check_query = "SELECT 0 AS id, '' AS groupname, '' AS attribute, '' AS value, '' AS op WHERE false"
+    authorize_group_reply_query = "SELECT 0 AS id, '' AS groupname, '' AS attribute, '' AS value, '' AS op WHERE false"
+    group_membership_query = "SELECT '' AS groupname WHERE false"
+{% endraw %}
+    pool {
+        start = 1
+        min = 1
+        max = 5
+        spare = 1
+        uses = 0
+        lifetime = 0
+        idle_timeout = 60
+    }
+}

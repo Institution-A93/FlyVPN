@@ -1,0 +1,40 @@
+---
+# SSH: вариант A (ADR-0016) — порт открыт, защита только ключом + fail2ban.
+- name: Установить fail2ban
+  ansible.builtin.apt:
+    name: [fail2ban]
+    state: present
+    update_cache: true
+
+- name: SSH-харданинг (drop-in)
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-flyvpn.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Управляется Ansible (роль common, ADR-0016). Только ключи.
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitRootLogin prohibit-password
+  notify: restart ssh
+
+- name: Jail fail2ban для sshd
+  ansible.builtin.copy:
+    dest: /etc/fail2ban/jail.d/sshd.local
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      [sshd]
+      enabled = true
+      backend = systemd
+      maxretry = 5
+      bantime = 1h
+  notify: restart fail2ban
+
+- name: Включить fail2ban
+  ansible.builtin.systemd:
+    name: fail2ban
+    enabled: true
+    state: started

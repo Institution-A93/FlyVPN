@@ -1,0 +1,15 @@
+# RADIUS-клиенты = ingress-узлы (strongSwan проксирует EAP сюда). Секреты — из vault.
+# Localhost для локальных проверок (radtest).
+client localhost {
+    ipaddr = 127.0.0.1
+    secret = testing123
+    require_message_authenticator = no
+}
+
+{% for c in cp_radius_clients %}
+client {{ c.name }} {
+    ipaddr = {{ c.ipaddr }}
+    secret = {{ c.secret }}
+    require_message_authenticator = yes
+}
+{% endfor %}

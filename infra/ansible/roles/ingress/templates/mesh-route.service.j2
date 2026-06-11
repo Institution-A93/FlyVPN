@@ -1,0 +1,17 @@
+[Unit]
+Description=Policy-routing клиентского трафика (10.8.0.0/14) в TUN sing-box
+After=sing-box.service
+Requires=sing-box.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+# Дождаться появления TUN-интерфейса (sing-box создаёт его при старте).
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do ip link show {{ ingress_tun_name }} && exit 0; sleep 1; done; exit 1'
+ExecStart=/sbin/ip rule add from {{ ingress_client_pool }} table {{ ingress_route_table }}
+ExecStart=/sbin/ip route replace default dev {{ ingress_tun_name }} table {{ ingress_route_table }}
+ExecStop=/sbin/ip route flush table {{ ingress_route_table }}
+ExecStop=/sbin/ip rule del from {{ ingress_client_pool }} table {{ ingress_route_table }}
+
+[Install]
+WantedBy=multi-user.target

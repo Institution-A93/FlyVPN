@@ -1,0 +1,10 @@
+---
+- name: restart sing-box
+  ansible.builtin.systemd: { name: sing-box, state: restarted, daemon_reload: true }
+
+- name: restart mesh-route
+  ansible.builtin.systemd: { name: mesh-route, state: restarted, daemon_reload: true }
+
+- name: reload swanctl
+  ansible.builtin.command: swanctl --load-all
+  changed_when: true

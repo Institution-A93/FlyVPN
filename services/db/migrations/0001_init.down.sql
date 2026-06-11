@@ -1,0 +1,6 @@
+DROP TABLE IF EXISTS node_secrets;
+DROP TABLE IF EXISTS nodes;
+DROP TABLE IF EXISTS usage_log;
+DROP TABLE IF EXISTS auth_credentials;
+DROP TABLE IF EXISTS subscriptions;
+DROP TABLE IF EXISTS users;
