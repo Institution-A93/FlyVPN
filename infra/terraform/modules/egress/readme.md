@@ -10,7 +10,7 @@ OpenTofu-модуль. Поднимает foreign egress-узел на Hetzner C
 |-------------------|----------------|--------------|------------|
 | `name`            | string         | `egress`     | имя узла |
 | `location`        | string         | `hel1`       | локация Hetzner (nbg1/fsn1/hel1/ash/hil) |
-| `server_type`     | string         | `cx22`       | тип сервера |
+| `server_type`     | string         | `cpx11`       | тип сервера |
 | `image`           | string         | `debian-12`  | образ ОС |
 | `ssh_key_names`   | list(string)   | —            | имена SSH-ключей в Hetzner (обязательно) |
 | `admin_ssh_cidrs` | list(string)   | —            | CIDR, с которых разрешён SSH (обязательно) |
