@@ -1,0 +1,21 @@
+[Unit]
+Description=config-api (Plati webhook, .mobileconfig)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=smartinternet
+EnvironmentFile=/etc/smartinternet/config-api.env
+ExecStart=/usr/local/bin/config-api
+Restart=on-failure
+RestartSec=5
+# Бинд :80 и :443 (ACME) без root:
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/config-api
+
+[Install]
+WantedBy=multi-user.target

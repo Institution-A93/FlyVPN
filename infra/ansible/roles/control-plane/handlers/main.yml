@@ -3,3 +3,15 @@
   ansible.builtin.systemd:
     name: freeradius
     state: restarted
+
+- name: restart config-api
+  ansible.builtin.systemd:
+    name: config-api
+    state: restarted
+    daemon_reload: true
+
+- name: restart orchestrator
+  ansible.builtin.systemd:
+    name: orchestrator
+    state: restarted
+    daemon_reload: true

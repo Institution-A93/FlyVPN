@@ -8,7 +8,7 @@ import (
 
 // Config — параметры запуска config-api. Секреты приходят из окружения, не из файлов.
 type Config struct {
-	ListenAddr   string // адрес HTTP (напр. ":8443")
+	ListenAddr   string // адрес plain-HTTP (если ACME выключен), напр. ":8443"
 	DatabaseURL  string // DSN PostgreSQL (pgx)
 	PlatiSecret  string // секрет для проверки HMAC-подписи Plati
 	VPNRemote    string // vpn.X.com — RemoteAddress в профиле
@@ -16,7 +16,15 @@ type Config struct {
 	ServerCACN   string // CN издателя серверного сертификата
 	Organization string // PayloadOrganization
 	DisplayName  string // отображаемое имя профиля
+
+	// ACME (Let's Encrypt). Если ACMEDomain задан — сервис слушает :443 (TLS,
+	// автосерт) + :80 (HTTP-01 challenge). Иначе — plain HTTP на ListenAddr.
+	ACMEDomain   string
+	ACMECacheDir string
 }
+
+// TLSEnabled — включён ли ACME/TLS.
+func (c Config) TLSEnabled() bool { return c.ACMEDomain != "" }
 
 // FromEnv читает конфиг из переменных окружения, проверяя обязательные.
 func FromEnv() (Config, error) {
@@ -29,6 +37,8 @@ func FromEnv() (Config, error) {
 		ServerCACN:   os.Getenv("CONFIGAPI_SERVER_CA_CN"),
 		Organization: getenv("CONFIGAPI_ORG", "Smart Internet"),
 		DisplayName:  getenv("CONFIGAPI_DISPLAY_NAME", "Smart Internet"),
+		ACMEDomain:   os.Getenv("CONFIGAPI_ACME_DOMAIN"),
+		ACMECacheDir: getenv("CONFIGAPI_ACME_CACHE", "/var/lib/config-api/acme"),
 	}
 	for k, v := range map[string]string{
 		"CONFIGAPI_DATABASE_URL": c.DatabaseURL,

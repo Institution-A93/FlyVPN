@@ -12,6 +12,7 @@ import (
 	"github.com/institution-a93/flyvpn/services/config-api/internal/config"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/httpapi"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/store"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 func main() {
@@ -31,13 +32,40 @@ func main() {
 	}
 	defer st.Close()
 
-	srv := httpapi.New(cfg, st, configapi.ProfileTemplate, log)
+	handler := httpapi.New(cfg, st, configapi.ProfileTemplate, log).Routes()
+
+	if cfg.TLSEnabled() {
+		m := &autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(cfg.ACMEDomain),
+			Cache:      autocert.DirCache(cfg.ACMECacheDir),
+		}
+		// :80 — HTTP-01 challenge ACME (+ редирект на HTTPS).
+		go func() {
+			if err := http.ListenAndServe(":80", m.HTTPHandler(nil)); err != nil {
+				log.Error("acme http", "err", err)
+			}
+		}()
+		httpsServer := &http.Server{
+			Addr:              ":443",
+			Handler:           handler,
+			TLSConfig:         m.TLSConfig(),
+			ReadHeaderTimeout: 10 * time.Second,
+		}
+		log.Info("config-api listening (TLS/ACME)", "domain", cfg.ACMEDomain)
+		if err := httpsServer.ListenAndServeTLS("", ""); err != nil {
+			log.Error("serve tls", "err", err)
+			os.Exit(1)
+		}
+		return
+	}
+
 	httpServer := &http.Server{
 		Addr:              cfg.ListenAddr,
-		Handler:           srv.Routes(),
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
-	log.Info("config-api listening", "addr", cfg.ListenAddr)
+	log.Info("config-api listening (plain HTTP)", "addr", cfg.ListenAddr)
 	if err := httpServer.ListenAndServe(); err != nil {
 		log.Error("serve", "err", err)
 		os.Exit(1)

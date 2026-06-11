@@ -13,10 +13,18 @@ resource "hcloud_firewall" "control" {
   labels = local.labels
 
   rule {
-    description = "config-api HTTPS (вебхук Plati)"
+    description = "config-api HTTPS (вебхук Plati) + ACME TLS-ALPN"
     direction   = "in"
     protocol    = "tcp"
     port        = tostring(var.api_port)
+    source_ips  = ["0.0.0.0/0", "::/0"]
+  }
+
+  rule {
+    description = "ACME HTTP-01 challenge (Let's Encrypt)"
+    direction   = "in"
+    protocol    = "tcp"
+    port        = "80"
     source_ips  = ["0.0.0.0/0", "::/0"]
   }
 

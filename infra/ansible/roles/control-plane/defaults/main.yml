@@ -20,3 +20,21 @@ cp_db_radius_password: ""       # пароль роли si_radius
 # RADIUS-клиенты (ingress-узлы): [{name, ipaddr, secret}]. На MMVP может быть пусто
 # (ingress ещё нет) — тогда FreeRADIUS поднимется без внешних клиентов.
 cp_radius_clients: []
+
+# --- Go-сервисы (config-api, orchestrator) ---
+cp_go_version: "1.23.4"           # пин тулчейна для сборки на узле
+cp_src_dir: "/opt/smartinternet/src"
+cp_services_src: "{{ playbook_dir }}/../../services/"   # источник в репозитории
+
+# config-api: домен и параметры профиля
+cp_configapi_acme_domain: "api.fly-vpn.net"
+cp_configapi_vpn_remote: "vpn.fly-vpn.net"     # RemoteAddress в .mobileconfig
+cp_configapi_vpn_remote_id: "vpn.fly-vpn.net"  # id сервера (CN серта IKEv2)
+cp_configapi_server_ca_cn: "R3"                # CN издателя серверного серта (Let's Encrypt)
+cp_configapi_org: "Smart Internet"
+cp_configapi_display_name: "Smart Internet"
+# СЕКРЕТ (vault): для проверки HMAC-подписи Plati.
+cp_plati_secret: ""
+
+cp_orch_listen: ":9090"
+cp_orch_health_interval: "30s"

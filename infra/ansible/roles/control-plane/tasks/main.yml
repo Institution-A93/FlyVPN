@@ -5,9 +5,10 @@
     that:
       - cp_db_app_password | length > 0
       - cp_db_radius_password | length > 0
+      - cp_plati_secret | length > 0
     fail_msg: >-
-      cp_db_app_password и cp_db_radius_password должны прийти из vault
-      (см. README роли и ADR-0012). В репозитории секретов нет.
+      cp_db_app_password, cp_db_radius_password и cp_plati_secret должны прийти из
+      vault (см. README роли и ADR-0012). В репозитории секретов нет.
     quiet: true
 
 # --- Пакеты ---
@@ -82,6 +83,25 @@
     path: "{{ cp_migrations_dir }}/0001_init.up.sql"
   when: not cp_schema_check.query_result[0].exists
 
+- name: Проверить наличие constraint nodes_public_ip_key (миграция 0002)
+  community.postgresql.postgresql_query:
+    db: "{{ cp_db_name }}"
+    login_unix_socket: /var/run/postgresql
+    query: "SELECT to_regclass('public.nodes') IS NOT NULL AND EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'nodes_public_ip_key') AS exists"
+  become: true
+  become_user: postgres
+  register: cp_m2_check
+
+- name: Применить миграцию 0002
+  community.postgresql.postgresql_script:
+    db: "{{ cp_db_name }}"
+    login_user: "{{ cp_db_app_user }}"
+    login_password: "{{ cp_db_app_password }}"
+    login_host: "{{ cp_db_host }}"
+    port: "{{ cp_db_port }}"
+    path: "{{ cp_migrations_dir }}/0002_nodes_public_ip_unique.up.sql"
+  when: not cp_m2_check.query_result[0].exists
+
 # FreeRADIUS читает только auth_credentials → выдаём ему лишь SELECT на неё.
 - name: Выдать SELECT на auth_credentials read-only роли
   community.postgresql.postgresql_privs:
@@ -127,3 +147,98 @@
     name: freeradius
     enabled: true
     state: started
+
+# --- Go-сервисы (config-api, orchestrator) ---
+- name: Установить Go-тулчейн (пин)
+  ansible.builtin.unarchive:
+    src: "https://go.dev/dl/go{{ cp_go_version }}.linux-amd64.tar.gz"
+    dest: /usr/local
+    remote_src: true
+    creates: "/usr/local/go/bin/go"
+
+- name: Системный пользователь сервисов
+  ansible.builtin.user:
+    name: smartinternet
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Каталоги сервисов
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ cp_src_dir }}"
+    - /var/lib/config-api/acme
+    - /etc/smartinternet
+
+- name: Право на ACME-кэш сервису
+  ansible.builtin.file:
+    path: /var/lib/config-api/acme
+    state: directory
+    owner: smartinternet
+    group: smartinternet
+    mode: "0700"
+
+- name: Доставить исходники сервисов на узел
+  ansible.builtin.copy:
+    src: "{{ cp_services_src }}"
+    dest: "{{ cp_src_dir }}/"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Собрать бинари сервисов
+  ansible.builtin.command:
+    cmd: "/usr/local/go/bin/go build -o /usr/local/bin/{{ item.bin }} ./cmd/{{ item.bin }}"
+    chdir: "{{ cp_src_dir }}/{{ item.dir }}"
+  environment:
+    GOCACHE: /tmp/gocache
+    GOPATH: /tmp/gopath
+  loop:
+    - { dir: config-api, bin: config-api }
+    - { dir: orchestrator, bin: orchestrator }
+  notify:
+    - restart config-api
+    - restart orchestrator
+
+- name: EnvironmentFile config-api
+  ansible.builtin.template:
+    src: config-api.env.j2
+    dest: /etc/smartinternet/config-api.env
+    owner: root
+    group: smartinternet
+    mode: "0640"
+  notify: restart config-api
+
+- name: EnvironmentFile orchestrator
+  ansible.builtin.template:
+    src: orchestrator.env.j2
+    dest: /etc/smartinternet/orchestrator.env
+    owner: root
+    group: smartinternet
+    mode: "0640"
+  notify: restart orchestrator
+
+- name: systemd-юниты сервисов
+  ansible.builtin.template:
+    src: "{{ item }}.service.j2"
+    dest: "/etc/systemd/system/{{ item }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: [config-api, orchestrator]
+  notify:
+    - restart config-api
+    - restart orchestrator
+
+- name: Включить и запустить Go-сервисы
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+  loop: [config-api, orchestrator]
