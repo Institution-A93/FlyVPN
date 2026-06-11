@@ -151,7 +151,7 @@
 # --- Go-сервисы (config-api, orchestrator) ---
 - name: Установить Go-тулчейн (пин)
   ansible.builtin.unarchive:
-    src: "https://go.dev/dl/go{{ cp_go_version }}.linux-amd64.tar.gz"
+    src: "https://go.dev/dl/go{{ cp_go_version }}.linux-{{ cp_go_arch }}.tar.gz"
     dest: /usr/local
     remote_src: true
     creates: "/usr/local/go/bin/go"

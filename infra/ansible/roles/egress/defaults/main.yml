@@ -1,7 +1,7 @@
 ---
 # sing-box (VLESS-Reality server). Версия запинена (ADR-0015, воспроизводимость).
 egress_singbox_version: "1.10.7"
-egress_singbox_arch: "amd64"
+egress_singbox_arch: "arm64"   # Hetzner CAX = ARM
 
 egress_listen_port: 443
 egress_flow: "xtls-rprx-vision"

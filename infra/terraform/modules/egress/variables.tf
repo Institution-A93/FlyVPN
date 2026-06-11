@@ -18,7 +18,7 @@ variable "location" {
 variable "server_type" {
   description = "Тип сервера Hetzner. На MMVP достаточно небольшого узла."
   type        = string
-  default     = "cpx11"
+  default     = "cax11"
 }
 
 variable "image" {
