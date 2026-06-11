@@ -29,6 +29,6 @@ Workflow'ы — в [`workflows/`](./workflows/readme.md):
 > Selectel-фазе (добавится `INGRESS_VAULT` + правка `--limit`).
 
 ## Предусловия
-- Бакет Hetzner Object Storage `flyvpn-tfstate` (регион `fsn1`) создан вручную.
+- Бакет Hetzner Object Storage `flyvpn-tfstate` (регион `hel1`) создан вручную.
 - Защита ветки `main` + Environment `production` с обязательным ревью.
 - DNS `api.fly-vpn.net` → IP control-plane (для ACME-серта config-api).

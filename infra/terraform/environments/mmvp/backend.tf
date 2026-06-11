@@ -6,10 +6,10 @@ terraform {
   backend "s3" {
     bucket = "flyvpn-tfstate"
     key    = "mmvp/terraform.tfstate"
-    region = "fsn1"
+    region = "hel1"
 
     endpoints = {
-      s3 = "https://fsn1.your-objectstorage.com"
+      s3 = "https://hel1.your-objectstorage.com"
     }
 
     # Hetzner Object Storage ≠ AWS — отключаем AWS-специфичные проверки.

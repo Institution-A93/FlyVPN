@@ -29,7 +29,7 @@
 - WireGuard-бастион (вариант B) — отложен; кандидат на ужесточение ingress в Selectel-фазе.
 
 ## Следствия
-- `infra/terraform/.../backend.tf` — s3 на Object Storage; `admin_ssh_cidrs` по умолчанию
+- `infra/terraform/.../backend.tf` — s3 на Object Storage (hel1); `admin_ssh_cidrs` по умолчанию
   `0.0.0.0/0`.
 - Роль `common`: SSH-харданинг + fail2ban на всех узлах.
 - `.github/workflows`: plan/apply + прогон Ansible; inventory из `tofu output`.

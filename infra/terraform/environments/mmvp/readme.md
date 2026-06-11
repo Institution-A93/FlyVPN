@@ -25,7 +25,7 @@ tofu apply
 
 ## Состояние
 Remote backend **Hetzner Object Storage** (S3-совместимый) — см. `backend.tf`. Бакет
-`flyvpn-tfstate` (регион `fsn1`) создаётся вручную один раз; ключи доступа — через
+`flyvpn-tfstate` (регион `hel1`) создаётся вручную один раз; ключи доступа — через
 `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (в CI — из GitHub Secrets, ADR-0016).
 
 ## Переменные
