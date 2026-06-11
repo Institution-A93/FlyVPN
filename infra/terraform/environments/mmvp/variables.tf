@@ -10,8 +10,9 @@ variable "ssh_key_names" {
 }
 
 variable "admin_ssh_cidrs" {
-  description = "CIDR, с которых разрешён SSH к узлам. Не использовать 0.0.0.0/0."
+  description = "CIDR, с которых разрешён SSH. Вариант A (ADR-0016): открыто всем, защита — только ключ + fail2ban."
   type        = list(string)
+  default     = ["0.0.0.0/0"]
 }
 
 # --- egress ---

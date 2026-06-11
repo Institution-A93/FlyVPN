@@ -24,9 +24,11 @@ tofu apply
 их дальше скармливаешь Ansible (inventory) и регистрируешь в оркестраторе.
 
 ## Состояние
-На старте — локальный backend (`*.tfstate` рядом, в `.gitignore`, НЕ коммитится).
-TODO: вынести в S3-совместимый backend (Hetzner Object Storage) при командной работе.
+Remote backend **Hetzner Object Storage** (S3-совместимый) — см. `backend.tf`. Бакет
+`flyvpn-tfstate` (регион `fsn1`) создаётся вручную один раз; ключи доступа — через
+`AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` (в CI — из GitHub Secrets, ADR-0016).
 
 ## Переменные
-`hcloud_token` (sensitive), `ssh_key_names`, `admin_ssh_cidrs` — обязательные;
-`egress_location`/`egress_server_type`/`egress_reality_port` — с дефолтами.
+`hcloud_token` (sensitive, `TF_VAR_hcloud_token`), `ssh_key_names` (`TF_VAR_ssh_key_names`)
+— обязательные; `admin_ssh_cidrs` по умолчанию `0.0.0.0/0` (вариант A SSH, ADR-0016);
+`egress_location`/`control_plane_location`/прочее — с дефолтами.

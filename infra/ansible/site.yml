@@ -1,5 +1,11 @@
 ---
 # Точка входа. Прогон по ролям узлов; группы — из inventory.
+- name: Base hardening (all nodes)
+  hosts: all
+  become: true
+  roles:
+    - common
+
 - name: Configure egress nodes
   hosts: egress
   become: true
