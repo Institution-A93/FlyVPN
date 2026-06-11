@@ -23,7 +23,7 @@ cp_radius_clients: []
 
 # --- Go-сервисы (config-api, orchestrator) ---
 cp_go_version: "1.23.4"           # пин тулчейна для сборки на узле
-cp_go_arch: "arm64"               # Hetzner CAX = ARM (control-plane собирает Go на узле)
+cp_go_arch: "amd64"               # CCX = x86
 cp_src_dir: "/opt/smartinternet/src"
 cp_services_src: "{{ playbook_dir }}/../../services/"   # источник в репозитории
 

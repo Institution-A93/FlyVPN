@@ -25,7 +25,7 @@ variable "egress_location" {
 variable "egress_server_type" {
   description = "Тип сервера egress."
   type        = string
-  default     = "cax11" # ARM, 2 vCPU/4GB (CPX/CX сняты с продажи в EU)
+  default     = "ccx13" # выделенные vCPU x86 (CAX ARM нет в наличии)
 }
 
 variable "egress_reality_port" {
@@ -44,5 +44,5 @@ variable "control_plane_location" {
 variable "control_plane_server_type" {
   description = "Тип сервера control plane."
   type        = string
-  default     = "cax21" # ARM, 4 vCPU/8GB
+  default     = "ccx13" # выделенные vCPU x86, 8GB
 }
