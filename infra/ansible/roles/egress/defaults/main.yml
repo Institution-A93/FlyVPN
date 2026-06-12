@@ -18,4 +18,4 @@ egress_clients: []               # [{uuid: <uuid>, name: <tag>}]
 
 # DNS: рекурсивный резолвинг клиентов на egress (unbound, только локально).
 egress_unbound_listen: "127.0.0.1"
-egress_unbound_port: 5353
+egress_unbound_port: 53        # дефолтный unbound на 127.0.0.1:53
