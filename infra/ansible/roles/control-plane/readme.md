@@ -27,9 +27,12 @@ ansible-galaxy collection install -r infra/ansible/requirements.yml
 ```
 
 ## Секреты (vault, ADR-0012)
-`cp_db_app_password`, `cp_db_radius_password`, `cp_plati_secret` (HMAC Plati),
-`cp_radius_clients` — из `group_vars/control/vault.yml` (в репозитории только `*.example`).
-Роль падает без обязательных.
+`cp_db_app_password`, `cp_db_radius_password`, `cp_radius_clients` — из
+`group_vars/control/vault.yml` (в репозитории только `*.example`). Роль падает без обязательных.
+Креды Digiseller (`cp_digiseller_seller_id`, `cp_digiseller_api_key`, `cp_plan_by_goods`) —
+**опциональны** и живут в отдельном `group_vars/control/zz_digiseller.yml` (на деплое — из
+GitHub-секрета `CONTROL_DIGISELLER`; см. `*.example`). Без них config-api стартует,
+но `/plati/issue` отдаёт 503 (ADR-0018).
 
 ## Ключевые переменные (defaults)
 `cp_db_name` (`smartinternet`), `cp_db_app_user`/`cp_db_radius_user`, `cp_go_version`,

@@ -13,6 +13,11 @@ Go-сервис (ADR-0013). Точка интеграции с Plati и выда
 4. Генерация `.mobileconfig` из шаблона и возврат покупателю.
 
 Креды Digiseller опциональны: без них сервис стартует, `/plati/issue` отдаёт 503.
+На боевом аккаунте Plati это товар `uniqueunfixed` + `content_type=DigisellerCode` с
+`verify_code.auto_verify` и `verify_url=https://api.fly-vpn.net/plati/issue` (товар 5937891,
+ADR-0018). Чек и уникальный код покупателю шлёт сам Digiseller на почту; наш сервер отдаёт
+`.mobileconfig` по `verify_url` — собственный мейлер не нужен. Креды на деплое приходят из
+GitHub-секрета `CONTROL_DIGISELLER` (не из `CONTROL_VAULT`).
 
 ## Шаблон профиля
 `profile.mobileconfig.tmpl` — Apple Configuration Profile для IKEv2 + EAP-MSCHAPv2,

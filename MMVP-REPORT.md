@@ -34,9 +34,11 @@
   ansible-vault.
 
 ### Backend-сервисы (Go)
-- **config-api**: Plati-вебхук (HMAC), генерация EAP-кредов (username + NT-hash),
-  идемпотентная по `plati_order_id` запись в БД, генерация `.mobileconfig` (IKEv2/
-  EAP-MSCHAPv2) из шаблона.
+- **config-api**: выдача по уникальному коду Plati/Digiseller (ADR-0018), генерация
+  EAP-кредов (username + NT-hash), идемпотентная по `uniquecode` запись в БД, генерация
+  `.mobileconfig` (IKEv2/EAP-MSCHAPv2) из шаблона. **На проде**: товар Digiseller 5937891
+  (`uniqueunfixed`/`DigisellerCode`, `verify_url=/plati/issue`), сквозная покупка →
+  выдача `.mobileconfig` проверена вживую.
 - **orchestrator**: реестр узлов (идемпотентная регистрация по `public_ip`),
   health-checking (TLS-пробы egress/control, пометка down после порога неудач),
   admin-API (`/healthz`, `/nodes`).
@@ -81,7 +83,7 @@
 | Схема БД (0001/0002) | применение + откат на **PostgreSQL 16**, CHECK на nt_hash, UNIQUE на public_ip | ✅ |
 | Auth-путь | **FreeRADIUS 3.2.5 + PostgreSQL 16**: верный/неверный/неизвестный/отозванный → корректный Accept/Reject + Framed-IP | ✅ |
 | config-api ↔ FreeRADIUS | E2E: выданный кред аутентифицируется через реальный шаблон роли (Access-Accept) | ✅ |
-| config-api (Go) | `go build/vet/test`: NT-hash по известным векторам, HMAC, рендер .mobileconfig, store на PG16 | ✅ |
+| config-api (Go) | `go build/vet/test`: NT-hash по известным векторам, клиент Digiseller (токен+проверка кода), рендер .mobileconfig (на боевом шаблоне), store на PG16 | ✅ |
 | orchestrator (Go) | `go build/vet/test`: TLS-проба, логика порога, реестр на PG16 | ✅ |
 | sing-box egress + ingress | конфиги проходят `sing-box check` (v1.10.7) | ✅ |
 | strongSwan (ingress) | офлайн не валидируется (нужен живой узел + клиент) | ⛔️ не проверено |
@@ -93,9 +95,10 @@
 
 - **Реальные аккаунты/токены**: есть Hetzner; нет Selectel и домена → ingress пока не
   включён в окружение, реальный `apply` egress/control ждёт токена.
-- **Сборка и systemd-деплой Go-сервисов** на control plane (роль ставит FreeRADIUS/
-  Postgres, но не собирает/не запускает config-api/orchestrator) — следующий шаг.
-- **Точная подпись Plati**: реализован HMAC-примитив; канонизацию подставить по docs Plati.
+- **Истечение подписки**: принудительного отзыва кредов после `expires_at` пока нет
+  (cron/orchestrator) — следующий шаг.
+- **Авто-редирект Digiseller**: файл отдаётся по `verify_url`; бесшовность «оплатил →
+  сразу профиль» зависит от тумблера `auto_verify` в панели товара — финальная сверка UX.
 - **Продление подписки = ротация пароля** (профиль переустанавливается) — MMVP-поведение.
 - Phase 2: GeoDNS (OSS-вариант вместо Cloudflare/NS1), авто-ротация секретов, выдача
   секретов узлам оркестратором, FDE remote unlock, метрики, alerting, глубокая
@@ -121,7 +124,7 @@ config-api: шаблон .mobileconfig + ADR-0014 (конфликт MSCHAPv2/bcr
 auth: NT-hash вместо bcrypt (ADR-0014)
 control-plane: Ansible-роль PostgreSQL + FreeRADIUS
 ADR-0013 accepted: backend на Go
-config-api: реализация на Go (Plati-вебхук, NT-hash, .mobileconfig)
+config-api: реализация на Go (выдача по коду Plati/Digiseller, NT-hash, .mobileconfig)
 ingress: OpenTofu-модуль под Selectel
 mesh: sing-box по обе стороны + ASN-split в sing-box (ADR-0015) + ingress-роль
 orchestrator: реестр узлов + health-checking (+ миграция 0002)

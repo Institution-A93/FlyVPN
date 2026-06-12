@@ -23,7 +23,7 @@ OpenTofu-модуль. Поднимает foreign control plane на Hetzner Clo
 
 ## Firewall
 
-Снаружи открыты только `api_port` (config-api HTTPS, вебхук Plati) и SSH (с
+Снаружи открыты только `api_port` (config-api HTTPS, Plati/Digiseller) и SSH (с
 `admin_ssh_cidrs`). RADIUS/PostgreSQL наружу не выставлены — слушают локально/в
 приватной сети.
 

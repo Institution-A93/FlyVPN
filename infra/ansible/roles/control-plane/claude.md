@@ -4,7 +4,7 @@
   <invariants>
     <i>FreeRADIUS ходит в БД read-only ролью с SELECT только на auth_credentials.</i>
     <i>Auth: NT-Password из auth_credentials, отзыв по revoked_at; sticky Framed-IP.</i>
-    <i>Секреты (пароли БД, plati_secret, clients) только из vault; в репозитории их нет — роль падает без них.</i>
+    <i>Секреты (пароли БД, RADIUS-clients) только из vault; креды Digiseller — опц., из секрета CONTROL_DIGISELLER (zz_digiseller.yml); в репозитории их нет.</i>
     <i>Шаблон sql.j2 содержит FreeRADIUS-xlat %{...}; статичная часть обёрнута в {% raw %} для Jinja.</i>
     <i>config-api/orchestrator собираются на узле (пин Go); env из vault; config-api сам терминирует TLS (ACME).</i>
   </invariants>

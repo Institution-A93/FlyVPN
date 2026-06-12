@@ -5,7 +5,7 @@
     <i>Языко- и раннер-независимо: обычный SQL, не привязан к выбору языка сервисов (ADR-0013).</i>
     <i>nt_hash — NT-hash (MD4) для MSCHAPv2, не bcrypt (ADR-0014); node_secrets.secret_value — зашифровано вне БД.</i>
     <i>Идентификация юзера — по plati_buyer_id, не по username/email.</i>
-    <i>plati_order_id уникален — идемпотентность Plati-вебхука.</i>
+    <i>plati_order_id (=uniquecode Digiseller) уникален — идемпотентность повторной выдачи.</i>
   </invariants>
   <entrypoints>
     <e path="./migrations/0001_init.up.sql">исходная схema (README §4)</e>
