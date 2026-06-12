@@ -9,7 +9,7 @@
       (vault). В репозитории секретов нет — см. README роли.
     quiet: true
 
-- name: Базовые пакеты (без unbound — он перехватывает DNS)
+- name: Базовые пакеты
   ansible.builtin.apt:
     name: [ca-certificates, curl]
     state: present
@@ -24,31 +24,15 @@
     creates: "/usr/local/bin/sing-box"
   notify: restart sing-box
 
-- name: Установить unbound
-  ansible.builtin.apt:
-    name: [unbound]
-    state: present
-
-# Установка unbound перехватывает системный resolv.conf на локальный резолвер.
-# Нам unbound нужен ТОЛЬКО для sing-box (порт 5353), не как системный. Пиним
-# системный resolv.conf на рекурсивные резолверы Hetzner.
-- name: Системный resolv.conf на резолверы Hetzner (unbound не трогает систему)
-  ansible.builtin.copy:
-    dest: /etc/resolv.conf
-    owner: root
-    group: root
-    mode: "0644"
-    content: |
-      # Управляется Ansible (роль egress). Системный DNS — резолверы Hetzner.
-      # unbound на 127.0.0.1:{{ egress_unbound_port }} обслуживает только sing-box.
-      nameserver 185.12.64.1
-      nameserver 185.12.64.2
-
-- name: Отключить resolvconf-интеграцию unbound (если есть)
+# DNS клиентов резолвит сам sing-box через публичный резолвер (запрос уходит ИЗ egress —
+# резолв на egress, не утекает из РФ). Отдельный unbound не нужен; если он остался от
+# прежних прогонов и падает — нейтрализуем.
+- name: Нейтрализовать unbound (если установлен) — sing-box резолвит сам
   ansible.builtin.systemd:
-    name: unbound-resolvconf
-    enabled: false
+    name: unbound
     state: stopped
+    enabled: false
+    masked: true
   failed_when: false
 
 - name: Каталог конфигурации sing-box
@@ -77,18 +61,6 @@
     group: root
     mode: "0644"
   notify: restart sing-box
-
-- name: Убрать прежний кастомный конфиг unbound (конфликтовал с дефолтом)
-  ansible.builtin.file:
-    path: /etc/unbound/unbound.conf.d/egress.conf
-    state: absent
-  notify: restart unbound
-
-- name: Включить и запустить unbound (дефолтный рекурсивный резолвер на 127.0.0.1:53)
-  ansible.builtin.systemd:
-    name: unbound
-    enabled: true
-    state: started
 
 - name: Включить и запустить sing-box
   ansible.builtin.systemd:

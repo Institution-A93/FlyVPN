@@ -2,9 +2,9 @@
   "log": { "level": "warn", "timestamp": true },
   "dns": {
     "servers": [
-      { "tag": "local-unbound", "address": "{{ egress_unbound_listen }}:{{ egress_unbound_port }}", "detour": "direct" }
+      { "tag": "resolver", "address": "{{ egress_dns_upstream }}", "detour": "direct" }
     ],
-    "final": "local-unbound",
+    "final": "resolver",
     "strategy": "prefer_ipv4"
   },
   "inbounds": [
