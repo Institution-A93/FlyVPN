@@ -1,4 +1,18 @@
 ---
+# Системный DNS — на резолверы Hetzner ДО любых apt. Это чинит возможный перехват
+# resolv.conf локальным unbound (на egress) от предыдущего прогона и гарантирует,
+# что apt/скачивания резолвят имена с самого начала.
+- name: Системный resolv.conf — резолверы Hetzner
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Управляется Ansible (роль common). Системный DNS — резолверы Hetzner.
+      nameserver 185.12.64.1
+      nameserver 185.12.64.2
+
 # SSH: вариант A (ADR-0016) — порт открыт, защита только ключом + fail2ban.
 - name: Установить fail2ban
   ansible.builtin.apt:
