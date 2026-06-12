@@ -16,6 +16,6 @@ egress_reality_private_key: ""   # x25519 private key
 egress_reality_short_ids: []     # список shortId
 egress_clients: []               # [{uuid: <uuid>, name: <tag>}]
 
-# DNS: рекурсивный резолвинг клиентов на egress (unbound, только локально).
-egress_unbound_listen: "127.0.0.1"
-egress_unbound_port: 53        # дефолтный unbound на 127.0.0.1:53
+# DNS клиентов резолвит сам sing-box через публичный резолвер (запрос уходит из egress,
+# не утекает из РФ). Отдельный unbound не нужен.
+egress_dns_upstream: "1.1.1.1"
