@@ -78,16 +78,13 @@
     mode: "0644"
   notify: restart sing-box
 
-- name: Конфиг unbound (рекурсивный, только локально)
-  ansible.builtin.template:
-    src: unbound-egress.conf.j2
-    dest: /etc/unbound/unbound.conf.d/egress.conf
-    owner: root
-    group: root
-    mode: "0644"
+- name: Убрать прежний кастомный конфиг unbound (конфликтовал с дефолтом)
+  ansible.builtin.file:
+    path: /etc/unbound/unbound.conf.d/egress.conf
+    state: absent
   notify: restart unbound
 
-- name: Включить и запустить unbound
+- name: Включить и запустить unbound (дефолтный рекурсивный резолвер на 127.0.0.1:53)
   ansible.builtin.systemd:
     name: unbound
     enabled: true
