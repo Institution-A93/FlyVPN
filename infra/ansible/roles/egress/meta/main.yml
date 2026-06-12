@@ -1,7 +1,7 @@
 ---
 galaxy_info:
   role_name: egress
-  description: Foreign egress — Xray VLESS-Reality server + unbound (рекурсивный DNS)
+  description: Foreign egress — sing-box VLESS-Reality server (DNS резолвит сам)
   license: AGPL-3.0-only
   min_ansible_version: "2.14"
   platforms:

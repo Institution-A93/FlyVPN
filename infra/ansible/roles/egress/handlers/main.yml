@@ -4,8 +4,3 @@
     name: sing-box
     state: restarted
     daemon_reload: true
-
-- name: restart unbound
-  ansible.builtin.systemd:
-    name: unbound
-    state: restarted

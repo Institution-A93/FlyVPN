@@ -24,3 +24,4 @@
 | 0014 | Хранение пароля при EAP-MSCHAPv2 — NT-hash             | accepted |
 | 0015 | sing-box транспорт mesh (обе стороны); ASN-split в sing-box | accepted |
 | 0016 | CI/CD на GitHub Actions (hosted); remote state; SSH вариант A | accepted |
+| 0017 | DNS на egress — резолвер sing-box, без unbound          | accepted |
