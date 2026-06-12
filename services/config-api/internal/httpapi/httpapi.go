@@ -1,9 +1,8 @@
-// Package httpapi — HTTP-слой config-api (healthz + вебхук Plati).
+// Package httpapi — HTTP-слой config-api (healthz + выдача по уникальному коду Plati/Digiseller).
 package httpapi
 
 import (
 	"context"
-	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -12,8 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/config"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/credentials"
+	"github.com/institution-a93/flyvpn/services/config-api/internal/digiseller"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/mobileconfig"
-	"github.com/institution-a93/flyvpn/services/config-api/internal/plati"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/store"
 )
 
@@ -22,24 +21,31 @@ type Issuer interface {
 	Issue(ctx context.Context, p store.IssueParams) (store.IssueResult, error)
 }
 
+// CodeChecker — проверка уникального кода в Digiseller (для тестируемости).
+type CodeChecker interface {
+	CheckUniqueCode(ctx context.Context, code string) (digiseller.Purchase, error)
+}
+
 // Server держит зависимости HTTP-слоя.
 type Server struct {
 	cfg      config.Config
 	store    Issuer
+	checker  CodeChecker // nil, если Digiseller не сконфигурирован
 	template string
 	log      *slog.Logger
 }
 
-// New собирает сервер.
-func New(cfg config.Config, st Issuer, tmpl string, log *slog.Logger) *Server {
-	return &Server{cfg: cfg, store: st, template: tmpl, log: log}
+// New собирает сервер. checker может быть nil (тогда /plati/issue отдаёт 503).
+func New(cfg config.Config, st Issuer, checker CodeChecker, tmpl string, log *slog.Logger) *Server {
+	return &Server{cfg: cfg, store: st, checker: checker, template: tmpl, log: log}
 }
 
 // Routes возвращает маршрутизатор.
 func (s *Server) Routes() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /healthz", s.healthz)
-	mux.HandleFunc("POST /plati/issue", s.platiIssue)
+	// Digiseller редиректит покупателя сюда с ?uniquecode=... (GET).
+	mux.HandleFunc("GET /plati/issue", s.platiIssue)
 	return mux
 }
 
@@ -48,43 +54,37 @@ func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {
 	_, _ = io.WriteString(w, "ok\n")
 }
 
-// platiRequest — упрощённое тело вебхука. Точная схема Plati — из их docs.
-type platiRequest struct {
-	BuyerID   string `json:"buyer_id"`
-	Email     string `json:"email"`
-	OrderID   string `json:"order_id"`
-	Plan      string `json:"plan"`       // '30d' | '90d' | '365d'
-	AmountRub int    `json:"amount_rub"`
-}
-
 var planDuration = map[string]time.Duration{
 	"30d":  30 * 24 * time.Hour,
 	"90d":  90 * 24 * time.Hour,
 	"365d": 365 * 24 * time.Hour,
 }
 
+// platiIssue: валидирует уникальный код Digiseller, создаёт/продлевает подписку и
+// возвращает .mobileconfig покупателю.
 func (s *Server) platiIssue(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(io.LimitReader(r.Body, 1<<20))
-	if err != nil {
-		http.Error(w, "bad body", http.StatusBadRequest)
+	if s.checker == nil {
+		http.Error(w, "billing not configured", http.StatusServiceUnavailable)
 		return
 	}
-	// Проверка HMAC до любых изменений в БД. Подпись — в заголовке X-Plati-Signature.
-	// ВНИМАНИЕ: канонизация payload под конкретный формат Plati — на месте интеграции.
-	sig := r.Header.Get("X-Plati-Signature")
-	if !plati.Verify(s.cfg.PlatiSecret, body, sig) {
-		http.Error(w, "invalid signature", http.StatusUnauthorized)
+	code := r.URL.Query().Get("uniquecode")
+	if code == "" {
+		http.Error(w, "uniquecode required", http.StatusBadRequest)
 		return
 	}
 
-	var req platiRequest
-	if err := json.Unmarshal(body, &req); err != nil {
-		http.Error(w, "bad json", http.StatusBadRequest)
+	// Проверка кода в Digiseller ДО любых изменений в БД.
+	purchase, err := s.checker.CheckUniqueCode(r.Context(), code)
+	if err != nil {
+		s.log.Warn("digiseller check", "err", err)
+		http.Error(w, "invalid or unpaid code", http.StatusForbidden)
 		return
 	}
-	dur, ok := planDuration[req.Plan]
-	if !ok || req.BuyerID == "" || req.OrderID == "" {
-		http.Error(w, "bad params", http.StatusBadRequest)
+
+	plan := s.cfg.PlanFor(purchase.IDGoods)
+	dur, ok := planDuration[plan]
+	if !ok {
+		s.fail(w, "plan mapping", nil)
 		return
 	}
 
@@ -100,11 +100,11 @@ func (s *Server) platiIssue(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res, err := s.store.Issue(r.Context(), store.IssueParams{
-		PlatiBuyerID:  req.BuyerID,
-		Email:         req.Email,
-		PlatiOrderID:  req.OrderID,
-		Plan:          req.Plan,
-		AmountRub:     req.AmountRub,
+		PlatiBuyerID:  purchase.Email, // стабильный идентификатор покупателя (Digiseller)
+		Email:         purchase.Email,
+		PlatiOrderID:  code, // уникальный код = ключ идемпотентности
+		Plan:          plan,
+		AmountRub:     int(purchase.Amount),
 		Duration:      dur,
 		CandidateUser: username,
 		NTHash:        credentials.NTHash(password),

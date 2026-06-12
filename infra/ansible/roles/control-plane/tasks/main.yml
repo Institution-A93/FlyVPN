@@ -5,10 +5,9 @@
     that:
       - cp_db_app_password | length > 0
       - cp_db_radius_password | length > 0
-      - cp_plati_secret | length > 0
     fail_msg: >-
-      cp_db_app_password, cp_db_radius_password и cp_plati_secret должны прийти из
-      vault (см. README роли и ADR-0012). В репозитории секретов нет.
+      cp_db_app_password и cp_db_radius_password должны прийти из vault
+      (см. README роли и ADR-0012). В репозитории секретов нет.
     quiet: true
 
 # --- Пакеты ---

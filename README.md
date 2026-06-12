@@ -128,19 +128,20 @@ Credentials туннеля выдаются оркестратором при с
 
 ### 2.7 Plati.market integration
 
-`config-api` принимает API-вебхук от Plati.market после успешной оплаты. Спецификация — по их docs (формат «уникальный товар через API»).
+Plati.market работает на платформе **Digiseller**; модель — «уникальный товар, выдаваемый сервером продавца» (ADR-0018). Это не HMAC-вебхук, а редирект покупателя с уникальным кодом + валидация кода через Digiseller API.
 
 Сценарий:
 1. Юзер покупает товар на странице продавца на Plati
-2. Plati делает HTTP-запрос на наш endpoint `https://api.X.com/plati/issue?orderid=...&signature=...`
-3. `config-api` валидирует подпись Plati (HMAC)
-4. Создаёт юзера в БД (если новый), создаёт подписку с end_date = now() + срок товара
-5. Генерирует EAP credentials (username = случайная строка из 16 символов; password = случайная строка ≥32 символов). В БД хранится **NT-hash** пароля (MD4 от UTF-16LE) для FreeRADIUS/MSCHAPv2 — bcrypt несовместим с MSCHAPv2 (см. ADR-0014)
+2. После оплаты Digiseller редиректит покупателя на наш endpoint `https://api.X.com/plati/issue?uniquecode=...`
+3. `config-api` получает токен (`POST /api/apilogin`, `sign = SHA256(api_key + timestamp)`) и валидирует код (`GET /api/purchases/unique-code/{code}?token=...`), получая `id_goods`, `email`, статус
+4. Маппит `id_goods → план`, создаёт юзера/подписку (идемпотентно по `uniquecode`); идентификация покупателя — по `email`
+5. Генерирует EAP credentials (username = случайная строка; password ≥32 символов). В БД хранится **NT-hash** пароля (MD4 от UTF-16LE) для FreeRADIUS/MSCHAPv2 — bcrypt несовместим (ADR-0014)
 6. Записывает credentials в `auth_credentials`
-7. Генерирует `.mobileconfig`-файл с подставленными значениями (см. шаблон в §4)
-8. Возвращает файл в ответ Plati — он автоматически прикладывается к покупке и отдаётся юзеру через личный кабинет на oplata.info и email от Plati
+7. Генерирует и возвращает `.mobileconfig`-файл покупателю (скачивается в браузере / отдаётся через личный кабинет)
 
-При повторной покупке (продление подписки) — тот же flow, но юзер идентифицируется по `plati_buyer_id`, к существующему юзеру добавляется новая подписка, end_date его текущих credentials продлевается.
+При повторной покупке (продление) — тот же flow, юзер идентифицируется по email; username/IP стабильны, пароль ротируется (профиль переустанавливается).
+
+Креды Digiseller (`seller_id`, `api_key`) — опциональны: без них `config-api` работает, но `/plati/issue` отдаёт 503.
 
 ## 3. Внешние зависимости
 
