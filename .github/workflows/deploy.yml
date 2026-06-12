@@ -63,9 +63,9 @@ jobs:
           printf '%s\n' "$CONTROL_VAULT" > group_vars/control/vault.yml
           cat > inventory.ini <<INV
           [egress]
-          egress ansible_host=${EGRESS_IP}
+          egress-node ansible_host=${EGRESS_IP}
           [control]
-          control ansible_host=${CONTROL_IP}
+          control-node ansible_host=${CONTROL_IP}
           [all:vars]
           ansible_user=root
           ansible_ssh_private_key_file=~/.ssh/deploy
