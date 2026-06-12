@@ -13,7 +13,7 @@ CREATE TABLE users (
                    CHECK (status IN ('active', 'blocked', 'churned'))
 );
 
--- Подписки. plati_order_id уникален (идемпотентность вебхука Plati).
+-- Подписки. plati_order_id (=uniquecode Digiseller) уникален (идемпотентность выдачи).
 CREATE TABLE subscriptions (
     id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id        UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

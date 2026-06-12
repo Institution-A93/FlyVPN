@@ -1,0 +1,7 @@
+# Содержимое GitHub-секрета CONTROL_DIGISELLER (Settings → Secrets → Actions).
+# На деплое материализуется как group_vars/control/zz_digiseller.yml (в .gitignore).
+# Имя zz_* сортируется ПОСЛЕ vault.yml → перекрывает пустые значения оттуда.
+# Без этого секрета config-api стартует, но /plati/issue отдаёт 503.
+cp_digiseller_seller_id: "1458453"                       # числовой ID продавца Digiseller
+cp_digiseller_api_key: "CHANGE-ME-fresh-key"             # СВЕЖИЙ API key (старый, светившийся, отозвать)
+cp_plan_by_goods: "5937891:30d"                          # товар Plati 5937891 → план 30 дней

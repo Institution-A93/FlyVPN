@@ -36,7 +36,7 @@
     <d>Egress + control plane — Hetzner (hcloud). Ingress — Selectel.</d>
     <d>Auth — RADIUS / EAP-MSCHAPv2: auth+accounting вынесены на control plane, RU-узел без юзерских данных.</d>
     <d>ASN-split включён с самого начала: RU-префиксы напрямую, остальное в туннель.</d>
-    <d>Plati-интеграция входит в MMVP (вебхук + HMAC + генерация .mobileconfig).</d>
+    <d>Plati-интеграция входит в MMVP (Digiseller unique-code + генерация .mobileconfig, ADR-0018).</d>
     <d>IaC — first-class для обеих ролей; узлы — cattle, ротация = tofu apply.</d>
     <d>Только OSS-компоненты в стеке. IaC-тул — OpenTofu (не Terraform: BUSL ≠ OSS).</d>
   </decisions>
@@ -53,7 +53,7 @@
     <e path="./docs/adr">architecture decision records — зафиксированные решения</e>
     <e path="./infra/terraform">провижн облачных ресурсов по ролям (ingress/egress/control-plane)</e>
     <e path="./infra/ansible">конфигурация узлов</e>
-    <e path="./services/config-api">Plati-вебхук, генерация .mobileconfig, выдача кредов</e>
+    <e path="./services/config-api">выдача по коду Plati/Digiseller, генерация .mobileconfig, выдача кредов</e>
     <e path="./services/orchestrator">реестр узлов, health-check, ротация</e>
   </layout>
 

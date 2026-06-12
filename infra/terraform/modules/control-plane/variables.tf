@@ -38,7 +38,7 @@ variable "admin_ssh_cidrs" {
 }
 
 variable "api_port" {
-  description = "Порт config-api (HTTPS, принимает вебхук Plati)."
+  description = "Порт config-api (HTTPS, выдача по коду Plati/Digiseller)."
   type        = number
   default     = 443
 }

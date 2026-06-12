@@ -39,7 +39,7 @@ cp_configapi_display_name: "Smart Internet"
 # seller_id и api_key — из vault, когда заведён аккаунт продавца.
 cp_digiseller_seller_id: ""        # числовой ID продавца
 cp_digiseller_api_key: ""          # API key Digiseller (vault)
-cp_plan_by_goods: ""               # "12345:30d,67890:365d" (id товара -> план)
+cp_plan_by_goods: ""               # "5937891:30d" (id товара Plati -> план); см. vault.yml.example
 cp_default_plan: "30d"
 
 cp_orch_listen: ":9090"

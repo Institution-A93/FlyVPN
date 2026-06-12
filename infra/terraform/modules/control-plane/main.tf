@@ -6,14 +6,14 @@ locals {
   }, var.labels)
 }
 
-# Публично торчит только config-api (HTTPS, вебхук Plati) и SSH с админских CIDR.
+# Публично торчит только config-api (HTTPS, выдача по коду Plati/Digiseller) и SSH с админских CIDR.
 # RADIUS/PostgreSQL слушают локально/в приватной сети — наружу не открыты.
 resource "hcloud_firewall" "control" {
   name   = "${var.name}-fw"
   labels = local.labels
 
   rule {
-    description = "config-api HTTPS (вебхук Plati) + ACME TLS-ALPN"
+    description = "config-api HTTPS (Plati/Digiseller) + ACME TLS-ALPN"
     direction   = "in"
     protocol    = "tcp"
     port        = tostring(var.api_port)

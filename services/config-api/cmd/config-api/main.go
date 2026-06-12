@@ -1,4 +1,4 @@
-// Command config-api — Plati-вебхук, генерация .mobileconfig, выдача EAP-кредов.
+// Command config-api — выдача по коду Plati/Digiseller, генерация .mobileconfig, выдача EAP-кредов.
 package main
 
 import (

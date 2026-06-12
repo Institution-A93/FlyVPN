@@ -7,7 +7,7 @@
   </invariants>
   <entrypoints>
     <e path="./db">схема PostgreSQL (миграции)</e>
-    <e path="./config-api">Plati-вебхук и генерация .mobileconfig</e>
+    <e path="./config-api">выдача по коду Plati/Digiseller и генерация .mobileconfig</e>
     <e path="./orchestrator">управление узлами</e>
   </entrypoints>
   <depends-on>

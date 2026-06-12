@@ -90,13 +90,13 @@ Credentials туннеля выдаются оркестратором при с
 Стек:
 - **FreeRADIUS** — серверная сторона EAP-аутентификации. Слушает RADIUS-запросы от ingress через VPN-туннель или поверх TLS
 - **PostgreSQL** — основная БД (юзеры, подписки, креды)
-- **Приложение «config-api»** — API для генерации mobileconfig, обработка Plati-вебхуков, выдача credentials оркестратору
+- **Приложение «config-api»** — API для генерации mobileconfig, выдача по уникальному коду Plati/Digiseller (ADR-0018), выдача credentials оркестратору
 - **Приложение «orchestrator»** — управление узлами, health-checking, secret rotation, GeoDNS update
 - **Prometheus + Grafana** (опционально на MVP, обязательно на phase 2) — метрики
 - **Loki или просто PostgreSQL** — логи (только critical events)
 
 Все компоненты в одном VPC, не светятся в публичный интернет за исключением:
-- `config-api` (HTTPS, принимает вебхуки от Plati)
+- `config-api` (HTTPS, принимает редирект покупателя от Plati/Digiseller с уникальным кодом)
 - Прометей-эндпоинт (доступен только из VPN админа)
 
 ### 2.6 Оркестратор
@@ -145,7 +145,7 @@ Plati.market работает на платформе **Digiseller**; модел
 
 ## 3. Внешние зависимости
 
-- **DNS** — OSS-вариант с geo-routing (напр. PowerDNS), не проприетарные Cloudflare/NS1 (см. ADR-0009). Один основной домен `X.com`, поддомен `vpn.X.com` для VPN ingress, `api.X.com` для Plati-вебхука
+- **DNS** — OSS-вариант с geo-routing (напр. PowerDNS), не проприетарные Cloudflare/NS1 (см. ADR-0009). Один основной домен `X.com`, поддомен `vpn.X.com` для VPN ingress, `api.X.com` для выдачи по коду Plati/Digiseller
 - **Cloud провайдеры для RU ingress** — минимум два разных хостера на старте, в перспективе 5-7. Selectel, Reg.ru, Timeweb, Beget, FirstVDS — кандидаты. Регистрация через прокладку (не на основное юрлицо)
 - **Cloud для foreign egress** — Hetzner, OVH, DigitalOcean, AWS. Желательно не на тех же провайдерах что ingress (избегаем коллапса при региональных проблемах)
 - **Cloud для foreign control plane** — один из вышеперечисленных, в стабильной юрисдикции (Германия / Нидерланды)

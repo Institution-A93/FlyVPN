@@ -54,6 +54,7 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           EGRESS_VAULT: ${{ secrets.EGRESS_VAULT }}
           CONTROL_VAULT: ${{ secrets.CONTROL_VAULT }}
+          CONTROL_DIGISELLER: ${{ secrets.CONTROL_DIGISELLER }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
@@ -61,6 +62,11 @@ jobs:
           mkdir -p group_vars/egress group_vars/control
           printf '%s\n' "$EGRESS_VAULT"  > group_vars/egress/vault.yml
           printf '%s\n' "$CONTROL_VAULT" > group_vars/control/vault.yml
+          # Digiseller-креды — отдельный секрет (можно менять, не трогая CONTROL_VAULT).
+          # Имя zz_* сортируется после vault.yml -> перекрывает пустые значения из него.
+          if [ -n "${CONTROL_DIGISELLER:-}" ]; then
+            printf '%s\n' "$CONTROL_DIGISELLER" > group_vars/control/zz_digiseller.yml
+          fi
           cat > inventory.ini <<INV
           [egress]
           egress-node ansible_host=${EGRESS_IP}
