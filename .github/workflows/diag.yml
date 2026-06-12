@@ -1,6 +1,9 @@
 name: diag
 on:
   workflow_dispatch:
+  push:
+    branches: [claude/kind-pasteur-2IMEz]
+    paths: [".github/workflows/diag.yml"]
 permissions:
   contents: read
 jobs:
