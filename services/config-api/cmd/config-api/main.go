@@ -10,6 +10,7 @@ import (
 
 	configapi "github.com/institution-a93/flyvpn/services/config-api"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/config"
+	"github.com/institution-a93/flyvpn/services/config-api/internal/digiseller"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/httpapi"
 	"github.com/institution-a93/flyvpn/services/config-api/internal/store"
 	"golang.org/x/crypto/acme/autocert"
@@ -32,7 +33,16 @@ func main() {
 	}
 	defer st.Close()
 
-	handler := httpapi.New(cfg, st, configapi.ProfileTemplate, log).Routes()
+	// Digiseller (Plati) — опционально: если креды не заданы, /plati/issue отдаёт 503.
+	var checker httpapi.CodeChecker
+	if cfg.DigisellerEnabled() {
+		checker = digiseller.New(cfg.DigisellerSellerID, cfg.DigisellerAPIKey)
+		log.Info("digiseller enabled", "seller_id", cfg.DigisellerSellerID)
+	} else {
+		log.Warn("digiseller not configured — /plati/issue вернёт 503")
+	}
+
+	handler := httpapi.New(cfg, st, checker, configapi.ProfileTemplate, log).Routes()
 
 	if cfg.TLSEnabled() {
 		m := &autocert.Manager{

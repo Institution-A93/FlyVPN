@@ -2,7 +2,11 @@
 # Реальный vault.yml — в .gitignore (group_vars/*/vault.yml).
 cp_db_app_password: "CHANGE-ME-app"
 cp_db_radius_password: "CHANGE-ME-radius"
-cp_plati_secret: "CHANGE-ME-plati-hmac-secret"
+# Digiseller (Plati) — опционально; заполни, когда заведёшь аккаунт продавца.
+# Без них config-api работает, но /plati/issue отдаёт 503.
+cp_digiseller_seller_id: ""        # числовой ID продавца Digiseller
+cp_digiseller_api_key: ""          # API key Digiseller
+cp_plan_by_goods: ""               # "<id_товара>:30d,<id_товара>:365d"
 # RADIUS-клиенты = ingress-узлы (появятся позже). На MMVP можно оставить пустым.
 cp_radius_clients: []
 #  - name: ingress-msk
