@@ -9,9 +9,9 @@
       (vault). В репозитории секретов нет — см. README роли.
     quiet: true
 
-- name: Установить системные пакеты
+- name: Базовые пакеты (без unbound — он перехватывает DNS)
   ansible.builtin.apt:
-    name: [ca-certificates, curl, unbound]
+    name: [ca-certificates, curl]
     state: present
     update_cache: true
 
@@ -23,6 +23,33 @@
     extra_opts: ["--strip-components=1", "--wildcards", "*/sing-box"]
     creates: "/usr/local/bin/sing-box"
   notify: restart sing-box
+
+- name: Установить unbound
+  ansible.builtin.apt:
+    name: [unbound]
+    state: present
+
+# Установка unbound перехватывает системный resolv.conf на локальный резолвер.
+# Нам unbound нужен ТОЛЬКО для sing-box (порт 5353), не как системный. Пиним
+# системный resolv.conf на рекурсивные резолверы Hetzner.
+- name: Системный resolv.conf на резолверы Hetzner (unbound не трогает систему)
+  ansible.builtin.copy:
+    dest: /etc/resolv.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Управляется Ansible (роль egress). Системный DNS — резолверы Hetzner.
+      # unbound на 127.0.0.1:{{ egress_unbound_port }} обслуживает только sing-box.
+      nameserver 185.12.64.1
+      nameserver 185.12.64.2
+
+- name: Отключить resolvconf-интеграцию unbound (если есть)
+  ansible.builtin.systemd:
+    name: unbound-resolvconf
+    enabled: false
+    state: stopped
+  failed_when: false
 
 - name: Каталог конфигурации sing-box
   ansible.builtin.file:
