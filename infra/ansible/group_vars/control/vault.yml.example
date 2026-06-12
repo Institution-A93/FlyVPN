@@ -4,9 +4,9 @@ cp_db_app_password: "CHANGE-ME-app"
 cp_db_radius_password: "CHANGE-ME-radius"
 # Digiseller (Plati) — опционально; заполни, когда заведёшь аккаунт продавца.
 # Без них config-api работает, но /plati/issue отдаёт 503.
-cp_digiseller_seller_id: ""        # числовой ID продавца Digiseller
-cp_digiseller_api_key: ""          # API key Digiseller
-cp_plan_by_goods: ""               # "<id_товара>:30d,<id_товара>:365d"
+cp_digiseller_seller_id: "1458453" # числовой ID продавца Digiseller
+cp_digiseller_api_key: ""          # API key Digiseller (создать СВЕЖИЙ в панели; старый отозвать)
+cp_plan_by_goods: "5937891:30d"    # товар Plati 5937891 (uniqueunfixed, verify_url=/plati/issue) -> 30 дней
 # RADIUS-клиенты = ingress-узлы (появятся позже). На MMVP можно оставить пустым.
 cp_radius_clients: []
 #  - name: ingress-msk
