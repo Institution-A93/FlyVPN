@@ -8,5 +8,5 @@ egress_reality_private_key: "PUT-X25519-PRIVATE-KEY-HERE"
 egress_reality_short_ids:
   - "0123abcd"
 egress_clients:
-  - id: "00000000-0000-0000-0000-000000000000"
-    email: "client-1"
+  - uuid: "00000000-0000-0000-0000-000000000000"  # = ingress_reality_uuid
+    name: "ingress"

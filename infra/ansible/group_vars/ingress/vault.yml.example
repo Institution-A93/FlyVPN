@@ -5,7 +5,7 @@
 # --- Reality mesh: ingress (клиент) → egress (сервер) ---
 ingress_egress_server: "EGRESS_PUBLIC_IP"          # публичный IP egress (Hetzner)
 ingress_egress_port: 443
-ingress_reality_uuid: "PUT-CLIENT-UUID"            # = один из egress_clients[].id
+ingress_reality_uuid: "PUT-CLIENT-UUID"            # = один из egress_clients[].uuid
 ingress_reality_public_key: "PUT-REALITY-PUBLIC"   # x25519 public (пара к egress_reality_private_key)
 ingress_reality_short_id: "PUT-SHORT-ID"           # = один из egress_reality_short_ids
 ingress_reality_server_name: "www.lovo.ai"         # SNI-камуфляж (= egress_reality_server_name)
