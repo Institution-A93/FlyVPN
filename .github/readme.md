@@ -21,6 +21,7 @@ Workflow'ы — в [`workflows/`](./workflows/readme.md):
 | `CONTROL_DIGISELLER`    | Креды Plati/Digiseller (YAML): `cp_digiseller_seller_id`, `cp_digiseller_api_key`, `cp_plan_by_goods`. Опционально — без него `/plati/issue` отдаёт 503 |
 | `OPENSTACK_RC`          | RC-блок Selectel/OpenStack (`export OS_*`) для провижна ingress (`deploy-ingress`) |
 | `INGRESS_VAULT`         | Содержимое `group_vars/ingress/vault.yml`: Reality-mesh к egress + RADIUS + LE-email |
+| `CONTROL_RADIUS`        | `cp_radius_clients` (ingress как RADIUS-клиент: name/ipaddr/secret). Отдельно от `CONTROL_VAULT` |
 
 ### Variables (там же → Variables)
 | Переменная             | Что это |

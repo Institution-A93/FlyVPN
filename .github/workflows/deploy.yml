@@ -56,6 +56,7 @@ jobs:
           EGRESS_VAULT: ${{ secrets.EGRESS_VAULT }}
           CONTROL_VAULT: ${{ secrets.CONTROL_VAULT }}
           CONTROL_DIGISELLER: ${{ secrets.CONTROL_DIGISELLER }}
+          CONTROL_RADIUS: ${{ secrets.CONTROL_RADIUS }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
@@ -63,10 +64,13 @@ jobs:
           mkdir -p group_vars/egress group_vars/control
           printf '%s\n' "$EGRESS_VAULT"  > group_vars/egress/vault.yml
           printf '%s\n' "$CONTROL_VAULT" > group_vars/control/vault.yml
-          # Digiseller-креды — отдельный секрет (можно менять, не трогая CONTROL_VAULT).
+          # Доп. секреты отдельными блобами (можно менять, не трогая CONTROL_VAULT).
           # Имя zz_* сортируется после vault.yml -> перекрывает пустые значения из него.
           if [ -n "${CONTROL_DIGISELLER:-}" ]; then
             printf '%s\n' "$CONTROL_DIGISELLER" > group_vars/control/zz_digiseller.yml
+          fi
+          if [ -n "${CONTROL_RADIUS:-}" ]; then
+            printf '%s\n' "$CONTROL_RADIUS" > group_vars/control/zz_radius.yml
           fi
           cat > inventory.ini <<INV
           [egress]
