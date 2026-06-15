@@ -15,6 +15,7 @@
     name:
       - strongswan
       - strongswan-swanctl
+      - libstrongswan-standard-plugins  # openssl (парсинг PEM-серта/ключа) + gcm (aes*gcm)
       - libcharon-extra-plugins   # eap-radius
       - libstrongswan-extra-plugins
       - curl
