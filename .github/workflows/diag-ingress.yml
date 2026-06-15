@@ -1,0 +1,29 @@
+name: diag-ingress
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/kind-pasteur-2IMEz]
+    paths: [".github/workflows/diag-ingress.yml"]
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe ingress node
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
+            echo "== uptime =="; uptime
+            echo "== busy procs =="; ps -eo pid,etimes,cmd | grep -E "certbot|sing-box|curl|wget|apt|dpkg|ansible|unzip|tar" | grep -v grep || echo none
+            echo "== sing-box bin =="; ls -la /usr/local/bin/sing-box 2>&1 || true
+            echo "== LE live =="; ls -la /etc/letsencrypt/live/ 2>&1 || true
+            echo "== services =="; systemctl is-active strongswan sing-box 2>&1 || true
+            echo "== reach github =="; timeout 12 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" -r 0-0 https://github.com/SagerNet/sing-box/releases/download/v1.10.7/sing-box-1.10.7-linux-amd64.tar.gz 2>&1 || echo "FAIL/timeout"
+            echo "== reach antifilter =="; timeout 12 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" https://antifilter.download/list/allyouneed.lst 2>&1 || echo "FAIL/timeout"
+            echo "== reach LE =="; timeout 12 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" https://acme-v02.api.letsencrypt.org/directory 2>&1 || echo "FAIL/timeout"
+          '
