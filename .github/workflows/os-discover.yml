@@ -1,0 +1,33 @@
+name: os-discover
+# Одноразовая разведка ресурсов проекта Selectel (ru-3) для сборки ingress-модуля.
+# Печатает только списки ресурсов; rc/секреты не эхоятся.
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/kind-pasteur-2IMEz]
+    paths: [".github/workflows/os-discover.yml"]
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - name: OpenStack resource discovery
+        env:
+          OPENSTACK_RC: ${{ secrets.OPENSTACK_RC }}
+        run: |
+          set +x
+          umask 077
+          printf '%s\n' "$OPENSTACK_RC" > os.rc
+          # shellcheck disable=SC1091
+          source ./os.rc
+          rm -f os.rc
+          python -m pip install --quiet python-openstackclient
+          echo "===== FLAVORS ====="; openstack flavor list --long || true
+          echo "===== NETWORKS ====="; openstack network list || true
+          echo "===== SUBNETS ====="; openstack subnet list || true
+          echo "===== ROUTERS ====="; openstack router list || true
+          echo "===== EXTERNAL NETS ====="; openstack network list --external || true
+          echo "===== AVAILABILITY ZONES ====="; openstack availability zone list --compute || true
+          echo "===== DEBIAN IMAGES ====="; openstack image list | grep -i debian || true
+          echo "===== KEYPAIRS ====="; openstack keypair list || true
