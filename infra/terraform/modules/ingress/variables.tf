@@ -1,39 +1,51 @@
 variable "name" {
-  description = "Имя RU ingress-узла."
+  description = "Имя узла (нейтральное — RU-сторона не светит назначение)."
   type        = string
-  default     = "ingress"
+  default     = "edge-1"
 }
 
 variable "flavor_name" {
-  description = "Flavor (тип) сервера в проекте Selectel/OpenStack."
+  description = "Flavor (тип) сервера Selectel/OpenStack (напр. SL1.2-4096-32)."
   type        = string
-  default     = "SL1.1-2048" # пример; уточнить по доступным флейворам проекта
+  default     = "SL1.2-4096-32" # 2 vCPU / 4 ГБ / 32 ГБ
 }
 
 variable "image_name" {
-  description = "Имя образа ОС (Debian 12) в проекте."
+  description = "Имя образа ОС в проекте (точное имя из `openstack image list`)."
   type        = string
-  default     = "Debian 12 64-bit"
-}
-
-variable "boot_volume_size" {
-  description = "Размер загрузочного тома, ГБ."
-  type        = number
-  default     = 20
+  default     = "Debian 12 (Bookworm) 64-bit"
 }
 
 variable "availability_zone" {
-  description = "Зона доступности (напр. ru-1a / ru-7a)."
+  description = "Зона доступности (напр. ru-3a)."
   type        = string
 }
 
 variable "external_network_id" {
-  description = "ID внешней сети для floating IP (публичный адрес)."
+  description = "ID внешней сети (gateway роутера + источник floating IP)."
   type        = string
 }
 
-variable "key_pair_name" {
-  description = "Имя OpenStack keypair (SSH-ключ) для доступа."
+variable "external_network_name" {
+  description = "Имя внешней сети (pool для floating IP)."
+  type        = string
+  default     = "external-network"
+}
+
+variable "subnet_cidr" {
+  description = "CIDR приватной подсети узла."
+  type        = string
+  default     = "192.168.100.0/24"
+}
+
+variable "dns_nameservers" {
+  description = "DNS-резолверы подсети."
+  type        = list(string)
+  default     = ["1.1.1.1", "8.8.8.8"]
+}
+
+variable "ssh_public_key" {
+  description = "Публичный SSH-ключ деплоя (для OpenStack keypair)."
   type        = string
 }
 
@@ -43,7 +55,7 @@ variable "admin_ssh_cidrs" {
 }
 
 variable "labels" {
-  description = "Метаданные на инстанс."
+  description = "Доп. метаданные инстанса (нейтральные)."
   type        = map(string)
   default     = {}
 }

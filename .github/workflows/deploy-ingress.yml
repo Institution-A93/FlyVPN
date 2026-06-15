@@ -1,0 +1,52 @@
+name: deploy-ingress
+# Провижн RU ingress (Selectel/OpenStack, окружение mmvp-ingress). Отдельно от deploy.yml
+# (Hetzner) — другой провайдер и state. Apply защищён Environment production (ручное ревью).
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/kind-pasteur-2IMEz]
+    paths: [".github/workflows/deploy-ingress.yml"]
+permissions:
+  contents: read
+concurrency:
+  group: deploy-ingress
+  cancel-in-progress: false
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.8.5"
+
+      - name: OpenTofu apply (ingress)
+        working-directory: infra/terraform/environments/mmvp-ingress
+        env:
+          OPENSTACK_RC: ${{ secrets.OPENSTACK_RC }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -e
+          # Креды Selectel из секрета (в лог не печатаем).
+          umask 077
+          printf '%s\n' "$OPENSTACK_RC" > os.rc
+          # shellcheck disable=SC1091
+          source ./os.rc
+          rm -f os.rc
+          # Публичный ключ деплоя из приватного (для OpenStack keypair).
+          printf '%s\n' "$SSH_PRIVATE_KEY" > deploy_key
+          chmod 600 deploy_key
+          TF_VAR_ssh_public_key="$(ssh-keygen -y -f deploy_key)"
+          export TF_VAR_ssh_public_key
+          rm -f deploy_key
+          tofu init -input=false
+          tofu apply -input=false -auto-approve
+          echo "INGRESS_IP=$(tofu output -raw ingress_public_ipv4)" >> "$GITHUB_ENV"
+
+      - name: Показать публичный IP
+        run: echo "ingress floating IP = ${INGRESS_IP}"
