@@ -178,3 +178,13 @@
     state: started
     daemon_reload: true
   loop: [sing-box, mesh-route, "ru-ruleset.timer", strongswan-starter]
+
+# strongswan-starter (charon) сам грузит ipsec.conf, но НЕ swanctl.conf — загружаем явно
+# (хендлер reload swanctl срабатывает лишь при смене конфига; на старте его может не быть).
+- name: Загрузить swanctl-конфиг (conns + creds) в charon
+  ansible.builtin.command: swanctl --load-all
+  register: swanctl_load
+  changed_when: "'loaded connection' in swanctl_load.stdout or 'unloaded' in swanctl_load.stdout"
+  retries: 3
+  delay: 3
+  until: swanctl_load.rc == 0
