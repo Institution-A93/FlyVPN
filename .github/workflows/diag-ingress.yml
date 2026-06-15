@@ -26,4 +26,6 @@ jobs:
             echo "== reach github =="; timeout 12 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" -r 0-0 https://github.com/SagerNet/sing-box/releases/download/v1.10.7/sing-box-1.10.7-linux-amd64.tar.gz 2>&1 || echo "FAIL/timeout"
             echo "== reach antifilter =="; timeout 12 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" https://antifilter.download/list/allyouneed.lst 2>&1 || echo "FAIL/timeout"
             echo "== reach LE =="; timeout 12 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" https://acme-v02.api.letsencrypt.org/directory 2>&1 || echo "FAIL/timeout"
+            echo "== route test: curl to IP 1.1.1.1 (no DNS) =="; timeout 12 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" https://1.1.1.1 2>&1 || echo "FAIL/timeout"
+            echo "== set public DNS, then resolve github =="; printf "nameserver 1.1.1.1\nnameserver 8.8.8.8\n" > /etc/resolv.conf; timeout 15 curl -sS -o /dev/null -w "%{http_code} %{time_total}s\n" -r 0-0 https://github.com/SagerNet/sing-box/releases/download/v1.10.7/sing-box-1.10.7-linux-amd64.tar.gz 2>&1 || echo "FAIL/timeout"
           '
