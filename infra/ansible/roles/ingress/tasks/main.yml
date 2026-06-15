@@ -177,4 +177,4 @@
     enabled: true
     state: started
     daemon_reload: true
-  loop: [sing-box, mesh-route, "ru-ruleset.timer", strongswan]
+  loop: [sing-box, mesh-route, "ru-ruleset.timer", strongswan-swanctl]
