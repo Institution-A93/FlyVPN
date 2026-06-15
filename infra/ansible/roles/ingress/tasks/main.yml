@@ -101,6 +101,56 @@
     mode: "0644"
   notify: restart mesh-route
 
+# --- Серверный сертификат (Let's Encrypt, HTTP-01) ---
+- name: Установить certbot
+  ansible.builtin.apt:
+    name: certbot
+    state: present
+
+- name: Выпустить серт Let's Encrypt (HTTP-01, standalone на :80)
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --standalone --non-interactive --agree-tos
+      {% if ingress_le_email | length > 0 %}-m {{ ingress_le_email }}{% else %}--register-unsafely-without-email{% endif %}
+      -d {{ ingress_le_domain }}
+    creates: "/etc/letsencrypt/live/{{ ingress_le_domain }}/fullchain.pem"
+
+- name: Каталоги swanctl для серта/ключа
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop: ["/etc/swanctl/x509", "/etc/swanctl/private"]
+
+- name: Хук на продление серта (копирует в swanctl и перезагружает)
+  ansible.builtin.copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/swanctl-reload.sh
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      set -e
+      D="{{ ingress_le_domain }}"
+      install -m 0644 "/etc/letsencrypt/live/$D/fullchain.pem" "{{ ingress_server_cert_path }}"
+      install -m 0600 "/etc/letsencrypt/live/$D/privkey.pem"   "{{ ingress_server_key_path }}"
+      swanctl --load-creds || true
+
+- name: Разместить серт/ключ в swanctl (первичная установка)
+  ansible.builtin.copy:
+    src: "/etc/letsencrypt/live/{{ ingress_le_domain }}/{{ item.src }}"
+    dest: "{{ item.dst }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "fullchain.pem", dst: "{{ ingress_server_cert_path }}", mode: "0644" }
+    - { src: "privkey.pem", dst: "{{ ingress_server_key_path }}", mode: "0600" }
+  notify: reload swanctl
+
 # --- strongSwan ---
 - name: swanctl.conf (IKEv2 + EAP-RADIUS)
   ansible.builtin.template:

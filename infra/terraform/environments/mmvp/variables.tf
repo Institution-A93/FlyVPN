@@ -46,3 +46,9 @@ variable "control_plane_server_type" {
   type        = string
   default     = "ccx13" # выделенные vCPU x86, 8GB
 }
+
+variable "radius_client_cidrs" {
+  description = "CIDR ingress-узлов для RADIUS на control (TF_VAR_radius_client_cidrs / GitHub Variable). IP в репо не хранится."
+  type        = list(string)
+  default     = []
+}

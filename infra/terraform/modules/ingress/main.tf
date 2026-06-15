@@ -60,6 +60,17 @@ resource "openstack_networking_secgroup_rule_v2" "ike_4500" {
   security_group_id = openstack_networking_secgroup_v2.ingress.id
 }
 
+# HTTP-01 ACME (Let's Encrypt серверного серта IKEv2). Нужен наружу для выпуска/продления.
+resource "openstack_networking_secgroup_rule_v2" "http_acme" {
+  direction         = "ingress"
+  ethertype         = "IPv4"
+  protocol          = "tcp"
+  port_range_min    = 80
+  port_range_max    = 80
+  remote_ip_prefix  = "0.0.0.0/0"
+  security_group_id = openstack_networking_secgroup_v2.ingress.id
+}
+
 resource "openstack_networking_secgroup_rule_v2" "ssh" {
   for_each          = toset(var.admin_ssh_cidrs)
   direction         = "ingress"

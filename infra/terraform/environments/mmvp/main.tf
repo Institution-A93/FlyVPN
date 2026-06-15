@@ -20,11 +20,12 @@ module "egress" {
 module "control_plane" {
   source = "../../modules/control-plane"
 
-  name            = "control-mmvp"
-  location        = var.control_plane_location
-  server_type     = var.control_plane_server_type
-  ssh_key_names   = var.ssh_key_names
-  admin_ssh_cidrs = var.admin_ssh_cidrs
+  name                = "control-mmvp"
+  location            = var.control_plane_location
+  server_type         = var.control_plane_server_type
+  ssh_key_names       = var.ssh_key_names
+  admin_ssh_cidrs     = var.admin_ssh_cidrs
+  radius_client_cidrs = var.radius_client_cidrs
 
   labels = {
     env = "mmvp"

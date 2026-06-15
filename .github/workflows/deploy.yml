@@ -18,6 +18,7 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
       TF_VAR_hcloud_token: ${{ secrets.HCLOUD_TOKEN }}
       TF_VAR_ssh_key_names: '["${{ vars.SSH_KEY_NAME }}"]'
+      TF_VAR_radius_client_cidrs: ${{ vars.RADIUS_CLIENT_CIDRS || '[]' }}
     steps:
       - uses: actions/checkout@v4
 

@@ -35,6 +35,19 @@ resource "hcloud_firewall" "control" {
     port        = "22"
     source_ips  = var.admin_ssh_cidrs
   }
+
+  # RADIUS (auth+acct) от ingress-узлов. Источник — только их IP (FreeRADIUS дополнительно
+  # ограничивает по client+secret). Пусто = правило не создаётся.
+  dynamic "rule" {
+    for_each = length(var.radius_client_cidrs) > 0 ? [1] : []
+    content {
+      description = "RADIUS auth from ingress"
+      direction   = "in"
+      protocol    = "udp"
+      port        = "1812-1813"
+      source_ips  = var.radius_client_cidrs
+    }
+  }
 }
 
 resource "hcloud_server" "control" {

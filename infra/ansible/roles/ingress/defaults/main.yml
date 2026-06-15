@@ -22,7 +22,10 @@ ingress_flow: "xtls-rprx-vision"
 ingress_dns_upstream: "1.1.1.1"
 
 # --- strongSwan (IKEv2 + EAP-RADIUS на control plane) ---
-ingress_vpn_id: "vpn.example.com"    # id сервера = CN серверного серта
+# Серверный серт — Let's Encrypt (HTTP-01) на домен ingress; CN серта = id сервера.
+ingress_le_domain: "vpn.fly-vpn.net"
+ingress_le_email: ""                 # e-mail для регистрации ACME (из vault); пусто = без e-mail
+ingress_vpn_id: "{{ ingress_le_domain }}" # id сервера = домен серта
 # Серверный серт/ключ кладёт оркестратор (ключ — под FDE), вне репозитория:
 ingress_server_cert_path: "/etc/swanctl/x509/server-cert.pem"
 ingress_server_key_path: "/etc/swanctl/private/server-key.pem"
