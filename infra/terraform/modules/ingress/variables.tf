@@ -17,8 +17,9 @@ variable "image_name" {
 }
 
 variable "availability_zone" {
-  description = "Зона доступности (напр. ru-3a)."
+  description = "Зона доступности (напр. ru-3a). Пусто = планировщик выбирает сам (надёжнее для local-disk флейворов)."
   type        = string
+  default     = ""
 }
 
 variable "external_network_id" {

@@ -7,7 +7,7 @@ module "ingress" {
   name                  = "edge-1" # нейтральное имя (RU-сторона не светит назначение)
   flavor_name           = "SL1.2-4096-32"
   image_name            = "Debian 12 (Bookworm) 64-bit"
-  availability_zone     = "ru-3a"
+  availability_zone     = "" # не пинним: планировщик сам найдёт хост (local_3a/local_amd)
   external_network_id   = "966826e6-d301-4bb5-aa13-77a324d15f0d"
   external_network_name = "external-network"
 

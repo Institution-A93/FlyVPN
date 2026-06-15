@@ -97,7 +97,7 @@ resource "openstack_compute_instance_v2" "ingress" {
   flavor_name       = var.flavor_name
   image_id          = data.openstack_images_image_v2.os.id
   key_pair          = openstack_compute_keypair_v2.ingress.name
-  availability_zone = var.availability_zone
+  availability_zone = var.availability_zone != "" ? var.availability_zone : null
   metadata          = local.metadata
 
   network {

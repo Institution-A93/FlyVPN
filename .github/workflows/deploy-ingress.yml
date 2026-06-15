@@ -5,7 +5,10 @@ on:
   workflow_dispatch:
   push:
     branches: [claude/kind-pasteur-2IMEz]
-    paths: [".github/workflows/deploy-ingress.yml"]
+    paths:
+      - ".github/workflows/deploy-ingress.yml"
+      - "infra/terraform/environments/mmvp-ingress/**"
+      - "infra/terraform/modules/ingress/**"
 permissions:
   contents: read
 concurrency:
