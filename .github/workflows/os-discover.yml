@@ -23,11 +23,11 @@ jobs:
           source ./os.rc
           rm -f os.rc
           python -m pip install --quiet python-openstackclient
-          echo "===== FLAVORS ====="; openstack flavor list --long || true
-          echo "===== NETWORKS ====="; openstack network list || true
-          echo "===== SUBNETS ====="; openstack subnet list || true
-          echo "===== ROUTERS ====="; openstack router list || true
-          echo "===== EXTERNAL NETS ====="; openstack network list --external || true
-          echo "===== AVAILABILITY ZONES ====="; openstack availability zone list --compute || true
-          echo "===== DEBIAN IMAGES ====="; openstack image list | grep -i debian || true
-          echo "===== KEYPAIRS ====="; openstack keypair list || true
+          echo "===== FLAVORS ====="; openstack flavor list -f value -c Name -c VCPUs -c RAM -c Disk || true
+          echo "===== NETWORKS ====="; openstack network list -f value -c ID -c Name || true
+          echo "===== EXTERNAL NETS ====="; openstack network list --external -f value -c ID -c Name || true
+          echo "===== SUBNETS ====="; openstack subnet list -f value -c ID -c Name -c Network -c Subnet || true
+          echo "===== ROUTERS ====="; openstack router list -f value -c ID -c Name || true
+          echo "===== AVAILABILITY ZONES ====="; openstack availability zone list --compute -f value -c "Zone Name" || true
+          echo "===== DEBIAN IMAGES ====="; openstack image list -f value -c ID -c Name | grep -i debian || true
+          echo "===== KEYPAIRS ====="; openstack keypair list -f value -c Name || true
