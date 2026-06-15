@@ -178,10 +178,22 @@
     enabled: true
     state: started
     daemon_reload: true
-  loop: [sing-box, mesh-route, "ru-ruleset.timer", strongswan-starter]
+  loop: [sing-box, mesh-route, "ru-ruleset.timer"]
 
-# strongswan-starter (charon) сам грузит ipsec.conf, но НЕ swanctl.conf — загружаем явно
-# (хендлер reload swanctl срабатывает лишь при смене конфига; на старте его может не быть).
+# charon рестартим всегда: иначе работающий с прошлого прогона демон не подхватит
+# свежеустановленные плагины (openssl для ECDSA-серта LE) и обновлённый конфиг.
+- name: Перезапустить strongswan-starter (charon подхватывает плагины/конфиг)
+  ansible.builtin.systemd:
+    name: strongswan-starter
+    enabled: true
+    state: restarted
+    daemon_reload: true
+
+- name: Дать charon подняться
+  ansible.builtin.wait_for:
+    timeout: 5
+
+# strongswan-starter (charon) сам грузит ipsec.conf, но НЕ swanctl.conf — загружаем явно.
 - name: Загрузить swanctl-конфиг (conns + creds) в charon
   ansible.builtin.command: swanctl --load-all
   register: swanctl_load
