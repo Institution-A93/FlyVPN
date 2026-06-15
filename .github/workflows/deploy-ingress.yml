@@ -11,6 +11,7 @@ on:
       - "infra/terraform/environments/mmvp-ingress/**"
       - "infra/terraform/modules/ingress/**"
       - "infra/ansible/roles/ingress/**"
+      - "infra/ansible/roles/common/**"
 permissions:
   contents: read
 concurrency:
