@@ -1,6 +1,7 @@
 name: deploy-ingress
 # Провижн + конфигурация RU ingress (Selectel/OpenStack, окружение mmvp-ingress).
 # Отдельно от deploy.yml (Hetzner). Apply/Ansible защищены Environment production.
+# (mesh Reality + RADIUS + LE-серт сшиты; конфиг едет из INGRESS_VAULT.)
 on:
   workflow_dispatch:
   push:
