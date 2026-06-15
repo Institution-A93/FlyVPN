@@ -1,0 +1,25 @@
+name: diag-ingress
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/kind-pasteur-2IMEz]
+    paths: [".github/workflows/diag-ingress.yml"]
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe strongSwan units on ingress
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
+            echo "== dpkg strongswan =="; dpkg -l | grep -i strongswan || true
+            echo "== unit files (strong/charon/ipsec) =="; systemctl list-unit-files | grep -iE "strong|charon|ipsec" || echo none
+            echo "== /lib/systemd units =="; ls /lib/systemd/system | grep -iE "strong|charon|ipsec" || echo none
+            echo "== swanctl =="; swanctl --version 2>&1 | head -1 || true
+          '
