@@ -1,0 +1,24 @@
+name: diag-ingress
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/kind-pasteur-2IMEz]
+    paths: [".github/workflows/diag-ingress.yml"]
+permissions:
+  contents: read
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Probe IKE handshake log on ingress
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
+            echo "== conns =="; swanctl --list-conns 2>&1 | grep -iE "ikev2-eap|local|remote|eap|cert" | head -20 || echo none
+            echo "== active SAs =="; swanctl --list-sas 2>&1 | head -20 || echo none
+            echo "== charon log (last 80) =="; journalctl -u strongswan-starter --no-pager -n 80 2>&1 | tail -80 || true
+          '
