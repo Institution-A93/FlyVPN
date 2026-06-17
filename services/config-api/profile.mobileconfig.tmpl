@@ -37,7 +37,9 @@
         <key>ExtendedAuthEnabled</key>     <integer>1</integer>
         <key>AuthName</key>                <string>{{EAP_USERNAME}}</string>
         <key>AuthPassword</key>            <string>{{EAP_PASSWORD}}</string>
-        <key>ServerCertificateIssuerCommonName</key> <string>{{SERVER_CA_CN}}</string>
+        <!-- ServerCertificateIssuerCommonName намеренно НЕ задаётся: серт публичный
+             (Let's Encrypt, ECDSA → издатель E5/E6, ротируется). iOS валидирует серт по
+             системной цепочке доверия + RemoteIdentifier. Жёсткий CN издателя только ломал бы. -->
         <key>DeadPeerDetectionRate</key>   <string>Medium</string>
         <key>DisableMOBIKE</key>           <integer>0</integer>
         <key>DisableRedirect</key>         <integer>0</integer>

@@ -14,7 +14,6 @@ const miniTmpl = `<plist><dict>
 <key>org</key><string>{{ORG_NAME}}</string>
 <key>remote</key><string>{{VPN_REMOTE_ADDRESS}}</string>
 <key>remoteid</key><string>{{VPN_REMOTE_IDENTIFIER}}</string>
-<key>ca</key><string>{{SERVER_CA_CN}}</string>
 <key>user</key><string>{{EAP_USERNAME}}</string>
 <key>pass</key><string>{{EAP_PASSWORD}}</string>
 </dict></plist>`
@@ -23,7 +22,7 @@ func validFields() Fields {
 	return Fields{
 		ProfileIdentifier: "com.x.vpn.1", ProfileUUID: "U1", PayloadUUID: "U2",
 		DisplayName: "Smart Internet", OrgName: "X", VPNRemoteAddress: "vpn.x.com",
-		VPNRemoteID: "vpn.x.com", ServerCACN: "R3", EAPUsername: "abc", EAPPassword: "p&w<d>",
+		VPNRemoteID: "vpn.x.com", EAPUsername: "abc", EAPPassword: "p&w<d>",
 	}
 }
 

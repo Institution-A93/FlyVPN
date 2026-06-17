@@ -15,7 +15,6 @@ type Fields struct {
 	OrgName           string
 	VPNRemoteAddress  string
 	VPNRemoteID       string
-	ServerCACN        string
 	EAPUsername       string
 	EAPPassword       string
 }
@@ -31,7 +30,6 @@ func Render(tmpl string, f Fields) ([]byte, error) {
 		"{{ORG_NAME}}":             f.OrgName,
 		"{{VPN_REMOTE_ADDRESS}}":   f.VPNRemoteAddress,
 		"{{VPN_REMOTE_IDENTIFIER}}": f.VPNRemoteID,
-		"{{SERVER_CA_CN}}":         f.ServerCACN,
 		"{{EAP_USERNAME}}":         f.EAPUsername,
 		"{{EAP_PASSWORD}}":         f.EAPPassword,
 	}

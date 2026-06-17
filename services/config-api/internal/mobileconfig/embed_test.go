@@ -21,7 +21,6 @@ func TestRenderRealEmbeddedTemplate(t *testing.T) {
 		OrgName:           "Smart Internet",
 		VPNRemoteAddress:  "vpn.fly-vpn.net",
 		VPNRemoteID:       "vpn.fly-vpn.net",
-		ServerCACN:        "R3",
 		EAPUsername:       "testuser",
 		EAPPassword:       "testpass",
 	}

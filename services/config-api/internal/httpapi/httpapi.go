@@ -122,7 +122,6 @@ func (s *Server) platiIssue(w http.ResponseWriter, r *http.Request) {
 		OrgName:           s.cfg.Organization,
 		VPNRemoteAddress:  s.cfg.VPNRemote,
 		VPNRemoteID:       s.cfg.VPNRemoteID,
-		ServerCACN:        s.cfg.ServerCACN,
 		EAPUsername:       res.Username,
 		EAPPassword:       password,
 	})
