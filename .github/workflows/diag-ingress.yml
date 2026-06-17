@@ -10,7 +10,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe IKE handshake log on ingress
+      - name: Probe IKE/EAP events on ingress
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -18,7 +18,10 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
           ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
-            echo "== conns =="; swanctl --list-conns 2>&1 | grep -iE "ikev2-eap|local|remote|eap|cert" | head -20 || echo none
-            echo "== active SAs =="; swanctl --list-sas 2>&1 | head -20 || echo none
-            echo "== charon log (last 80) =="; journalctl -u strongswan-starter --no-pager -n 80 2>&1 | tail -80 || true
+            echo "== conns =="; swanctl --list-conns 2>&1 | sed -n "1,20p" || echo none
+            echo "== real-client / auth events (last 6 min) =="
+            journalctl -u strongswan-starter --since "-6min" --no-pager 2>&1 \
+              | grep -iE "IKE_AUTH|EAP|RADIUS|authentication|established|CHILD_SA|installing|TS_|reauth|no shared secret|constraint|verif|peer|identity|retransmit|giving up|selected proposal" \
+              | tail -90 || echo "no client/auth events in window"
+            echo "== raw tail 25 =="; journalctl -u strongswan-starter --no-pager -n 25 2>&1 | tail -25
           '
