@@ -6,6 +6,10 @@ ingress_singbox_arch: "amd64"
 # TUN и policy-routing клиентского трафика в sing-box.
 ingress_tun_name: "sb-tun"
 ingress_tun_addr: "172.19.0.1/30"
+# MTU TUN: занижен под двойную инкапсуляцию (IPsec + Reality) и меньший путь LTE.
+# Меньше MTU → sing-box анонсирует клиенту меньший TCP MSS → сегменты влезают без
+# фрагментации (на WiFi всё работало, на LTE крупные ответы рвались). 1320 ⇒ MSS ~1280.
+ingress_tun_mtu: 1320
 ingress_client_pool: "10.8.0.0/14"   # пул strongSwan (Framed-IP)
 ingress_route_table: 100
 
