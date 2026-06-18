@@ -20,6 +20,9 @@ ingress_flow: "xtls-rprx-vision"
 
 # DNS клиентов резолвится на egress (через туннель), не утекает из РФ.
 ingress_dns_upstream: "1.1.1.1"
+# DNS, отдаваемый клиенту (push). Публичный резолвер — sing-box перехватит и проксирует
+# через egress; на адрес TUN sing-box DNS не слушает.
+ingress_client_dns: "1.1.1.1"
 
 # --- strongSwan (IKEv2 + EAP-RADIUS на control plane) ---
 # Серверный серт — Let's Encrypt (HTTP-01) на домен ingress; CN серта = id сервера.

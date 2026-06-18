@@ -27,6 +27,9 @@ connections {
 pools {
     client_pool {
         addrs = {{ ingress_client_pool }}
-        dns = {{ ingress_tun_addr | regex_replace('/.*$','') }}
+        # Клиенту отдаём ПУБЛИЧНЫЙ резолвер: sing-box перехватывает DNS (sniff + правило
+        # protocol:dns -> dns-out) и резолвит через egress. На адрес TUN sing-box DNS не
+        # слушает (был 172.19.0.1 -> connection refused, клиент не резолвил ничего).
+        dns = {{ ingress_client_dns }}
     }
 }
