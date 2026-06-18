@@ -10,7 +10,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Simulate client traffic through the split
+      - name: Test client DNS path (172.19.0.1 pushed to client)
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -19,18 +19,15 @@ jobs:
           chmod 600 ~/.ssh/deploy
           ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
             set +e
-            echo "== services =="; systemctl is-active sing-box mesh-route strongswan-starter
-            echo "== sb-tun =="; ip -br addr show sb-tun 2>&1
-            echo "== ip rule (pool) =="; ip rule 2>&1 | grep -E "10\.8|lookup 100" || echo "NO rule for pool"
-            echo "== route table 100 =="; ip route show table 100 2>&1 || echo empty
-            echo "== sing-box log tail =="; journalctl -u sing-box --no-pager -n 8 2>&1 | tail -8
-            echo "== simulate client (src 10.8.0.9 -> same policy route) =="
+            command -v dig >/dev/null || apt-get install -y -q dnsutils >/dev/null 2>&1
             ip addr add 10.8.0.9/32 dev lo 2>/dev/null
-            echo -n "foreign exit IP (curl ipinfo, expect egress 77.42.67.183): "
-            curl --interface 10.8.0.9 -s -m 15 https://ipinfo.io/ip 2>&1 || echo "FOREIGN FAIL/timeout"
-            echo -n "RU site reach (curl ya.ru): "
-            curl --interface 10.8.0.9 -s -m 15 -o /dev/null -w "%{http_code} via %{remote_ip}\n" https://ya.ru 2>&1 || echo "RU FAIL/timeout"
-            echo -n "control (no --interface, host direct) ipinfo: "
-            curl -s -m 15 https://ipinfo.io/ip 2>&1 || echo "host FAIL"
+            echo "== DNS to 172.19.0.1 from pool src (mimics phone) =="
+            dig +timeout=5 +tries=1 -b 10.8.0.9 @172.19.0.1 example.com A +short 2>&1 | head -5 || true
+            echo "rc=$?"
+            echo "== DNS to 172.19.0.1 (no source bind) =="
+            dig +timeout=5 +tries=1 @172.19.0.1 example.com A +short 2>&1 | head -5 || true
+            echo "== for comparison: full fetch with that DNS forced (pool src) =="
+            curl --interface 10.8.0.9 --dns-servers 172.19.0.1 -s -m 15 https://ipinfo.io/ip 2>&1 | head -3 || echo "curl --dns-servers unsupported or FAIL"
+            echo "== sing-box dns-related log =="; journalctl -u sing-box --no-pager -n 15 2>&1 | grep -iE "dns|sniff|reject|error" | tail -10 || echo "(no dns log lines)"
             ip addr del 10.8.0.9/32 dev lo 2>/dev/null
           '
