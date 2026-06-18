@@ -58,10 +58,11 @@
     group: root
     mode: "0755"
 
-- name: Первичная сборка RU rule_set (если ещё нет)
+- name: Собрать/обновить RU rule_set (каждый деплой — источник может меняться)
   ansible.builtin.command: /usr/local/sbin/update-ru-ruleset.sh
-  args:
-    creates: /var/lib/sing-box/ru.srs
+  register: ru_ruleset_build
+  changed_when: "'обновлён' in ru_ruleset_build.stdout"
+  notify: restart sing-box
 
 - name: Таймер обновления RU rule_set (раз в сутки)
   ansible.builtin.template:

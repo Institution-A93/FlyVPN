@@ -35,6 +35,8 @@ ingress_radius_secret: ""
 ingress_radius_auth_port: 1812
 ingress_radius_acct_port: 1813
 
-# RU-префиксы для rule_set (источники — OSS, ADR-0009/0006).
+# Российские IP-подсети для rule_set (RU → direct). Нужен список РОССИЙСКИХ сетей
+# (GeoIP RU), НЕ список заблокированных ресурсов. ipdeny — бесплатный per-country zone
+# (plain CIDR), компилируется в .srs нашим скриптом (ADR-0009/0006).
 ingress_ru_sources:
-  - "https://antifilter.download/list/allyouneed.lst"  # пример; уточнить формат/источник
+  - "https://www.ipdeny.com/ipblocks/data/countries/ru.zone"
