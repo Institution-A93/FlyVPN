@@ -10,7 +10,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Inspect + rebuild RU rule_set, restart sing-box
+      - name: Simulate client traffic through the split
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -18,10 +18,19 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
           ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
-            echo "== current ru.srs =="; ls -l /var/lib/sing-box/ru.srs 2>&1 || echo absent
-            echo "== rebuild ru.srs (runs updater; shows prefix count) =="
-            /usr/local/sbin/update-ru-ruleset.sh 2>&1 | tail -5 || echo "updater FAILED"
-            echo "== ru.srs after =="; ls -l /var/lib/sing-box/ru.srs 2>&1 || echo absent
-            echo "== restart sing-box =="; systemctl restart sing-box && sleep 2 && systemctl is-active sing-box
-            echo "== sing-box log tail =="; journalctl -u sing-box --no-pager -n 12 2>&1 | tail -12
+            set +e
+            echo "== services =="; systemctl is-active sing-box mesh-route strongswan-starter
+            echo "== sb-tun =="; ip -br addr show sb-tun 2>&1
+            echo "== ip rule (pool) =="; ip rule 2>&1 | grep -E "10\.8|lookup 100" || echo "NO rule for pool"
+            echo "== route table 100 =="; ip route show table 100 2>&1 || echo empty
+            echo "== sing-box log tail =="; journalctl -u sing-box --no-pager -n 8 2>&1 | tail -8
+            echo "== simulate client (src 10.8.0.9 -> same policy route) =="
+            ip addr add 10.8.0.9/32 dev lo 2>/dev/null
+            echo -n "foreign exit IP (curl ipinfo, expect egress 77.42.67.183): "
+            curl --interface 10.8.0.9 -s -m 15 https://ipinfo.io/ip 2>&1 || echo "FOREIGN FAIL/timeout"
+            echo -n "RU site reach (curl ya.ru): "
+            curl --interface 10.8.0.9 -s -m 15 -o /dev/null -w "%{http_code} via %{remote_ip}\n" https://ya.ru 2>&1 || echo "RU FAIL/timeout"
+            echo -n "control (no --interface, host direct) ipinfo: "
+            curl -s -m 15 https://ipinfo.io/ip 2>&1 || echo "host FAIL"
+            ip addr del 10.8.0.9/32 dev lo 2>/dev/null
           '
