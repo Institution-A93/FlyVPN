@@ -10,7 +10,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Probe IKE/EAP events on ingress
+      - name: Verify eap-radius plugin + RADIUS path
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -18,10 +18,12 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
           ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
-            echo "== conns =="; swanctl --list-conns 2>&1 | sed -n "1,20p" || echo none
-            echo "== real-client / auth events (last 6 min) =="
-            journalctl -u strongswan-starter --since "-6min" --no-pager 2>&1 \
-              | grep -iE "IKE_AUTH|EAP|RADIUS|authentication|established|CHILD_SA|installing|TS_|reauth|no shared secret|constraint|verif|peer|identity|retransmit|giving up|selected proposal" \
-              | tail -90 || echo "no client/auth events in window"
-            echo "== raw tail 25 =="; journalctl -u strongswan-starter --no-pager -n 25 2>&1 | tail -25
+            echo "== eap-radius in loaded plugins? =="
+            journalctl -u strongswan-starter --no-pager 2>/dev/null | grep -i "loaded plugins: charon" | tail -1 | tr " " "\n" | grep -i "radius\|eap-" || echo "NO eap-radius in loaded plugins"
+            echo "== RADIUS path test (expect Access-Reject = reachable + secret OK) =="
+            apt-get install -y -q freeradius-utils >/dev/null 2>&1 || true
+            SEC=$(grep -oP "secret\s*=\s*\K\S+" /etc/strongswan.d/charon/eap-radius.conf | head -1)
+            RS=$(grep -oP "address\s*=\s*\K\S+" /etc/strongswan.d/charon/eap-radius.conf | head -1)
+            echo "radius server: $RS"
+            radtest probeuser probepass "$RS" 0 "$SEC" 2>&1 | grep -iE "Access-(Accept|Reject)|no response|timed out|Receive" | head -8 || echo "radtest: no usable output"
           '
