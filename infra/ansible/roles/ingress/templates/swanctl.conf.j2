@@ -17,16 +17,19 @@ connections {
         children {
             net {
                 local_ts = 0.0.0.0/0
-                esp_proposals = aes256gcm16-prfsha384-ecp384, aes256-sha256-modp2048
+                esp_proposals = aes256gcm16-ecp256, aes256gcm16-ecp384, aes256-sha256-modp2048
             }
         }
-        proposals = aes256gcm16-prfsha384-ecp384, aes256-sha256-modp2048
+        proposals = aes256gcm16-prfsha256-ecp256, aes256gcm16-prfsha384-ecp384, aes256-sha256-modp2048
     }
 }
 
 pools {
     client_pool {
         addrs = {{ ingress_client_pool }}
-        dns = {{ ingress_tun_addr | regex_replace('/.*$','') }}
+        # Клиенту отдаём ПУБЛИЧНЫЙ резолвер: sing-box перехватывает DNS (sniff + правило
+        # protocol:dns -> dns-out) и резолвит через egress. На адрес TUN sing-box DNS не
+        # слушает (был 172.19.0.1 -> connection refused, клиент не резолвил ничего).
+        dns = {{ ingress_client_dns }}
     }
 }

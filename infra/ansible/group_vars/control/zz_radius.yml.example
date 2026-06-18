@@ -1,0 +1,7 @@
+# Содержимое GitHub-секрета CONTROL_RADIUS (на деплое → group_vars/control/zz_radius.yml).
+# Отдельно от CONTROL_VAULT, чтобы менять список ingress-клиентов, не трогая db-пароли.
+# ipaddr — публичный IP ingress; secret = ingress_radius_secret в INGRESS_VAULT.
+cp_radius_clients:
+  - name: edge-1
+    ipaddr: "INGRESS_PUBLIC_IP"
+    secret: "PUT-RADIUS-SECRET"

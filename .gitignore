@@ -36,8 +36,9 @@ override.tf.json
 vault-password*
 host_vars/*/vault.yml
 group_vars/*/vault.yml
-# Digiseller-креды — отдельный секрет CONTROL_DIGISELLER, материализуется на деплое.
+# Доп. секреты control — отдельные секреты CONTROL_DIGISELLER/CONTROL_RADIUS, материализуются на деплое.
 group_vars/*/zz_digiseller.yml
+group_vars/*/zz_radius.yml
 # Реальный inventory: IP узлов оперативно чувствительны (вне репозитория)
 inventory.ini
 inventory/*.ini

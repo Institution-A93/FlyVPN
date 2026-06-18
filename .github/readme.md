@@ -19,11 +19,15 @@ Workflow'ы — в [`workflows/`](./workflows/readme.md):
 | `EGRESS_VAULT`          | Содержимое `group_vars/egress/vault.yml` (YAML целиком) |
 | `CONTROL_VAULT`         | Содержимое `group_vars/control/vault.yml` (db-пароли, RADIUS-клиенты) |
 | `CONTROL_DIGISELLER`    | Креды Plati/Digiseller (YAML): `cp_digiseller_seller_id`, `cp_digiseller_api_key`, `cp_plan_by_goods`. Опционально — без него `/plati/issue` отдаёт 503 |
+| `OPENSTACK_RC`          | RC-блок Selectel/OpenStack (`export OS_*`) для провижна ingress (`deploy-ingress`) |
+| `INGRESS_VAULT`         | Содержимое `group_vars/ingress/vault.yml`: Reality-mesh к egress + RADIUS + LE-email |
+| `CONTROL_RADIUS`        | `cp_radius_clients` (ingress как RADIUS-клиент: name/ipaddr/secret). Отдельно от `CONTROL_VAULT` |
 
 ### Variables (там же → Variables)
-| Переменная     | Что это |
-|----------------|---------|
-| `SSH_KEY_NAME` | Имя SSH-ключа, загруженного в Hetzner (для tofu) |
+| Переменная             | Что это |
+|------------------------|---------|
+| `SSH_KEY_NAME`         | Имя SSH-ключа, загруженного в Hetzner (для tofu) |
+| `RADIUS_CLIENT_CIDRS`  | JSON-список CIDR ingress-узлов для RADIUS-firewall на control (напр. `["203.0.113.5/32"]`). IP RU-узла в git не хранится |
 
 > Секреты в git НЕ коммитятся (даже зашифрованные) — vault'ы материализуются на раннере
 > из `EGRESS_VAULT`/`CONTROL_VAULT` на время прогона (ADR-0016). `CONTROL_DIGISELLER`

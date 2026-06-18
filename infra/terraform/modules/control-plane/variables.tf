@@ -43,6 +43,12 @@ variable "api_port" {
   default     = 443
 }
 
+variable "radius_client_cidrs" {
+  description = "CIDR ingress-узлов, которым открыт RADIUS (UDP 1812/1813). Пусто = правило не создаётся."
+  type        = list(string)
+  default     = []
+}
+
 variable "labels" {
   description = "Дополнительные метки на ресурсы."
   type        = map(string)

@@ -15,6 +15,7 @@
     name:
       - strongswan
       - strongswan-swanctl
+      - libstrongswan-standard-plugins  # openssl (парсинг PEM-серта/ключа) + gcm (aes*gcm)
       - libcharon-extra-plugins   # eap-radius
       - libstrongswan-extra-plugins
       - curl
@@ -57,10 +58,11 @@
     group: root
     mode: "0755"
 
-- name: Первичная сборка RU rule_set (если ещё нет)
+- name: Собрать/обновить RU rule_set (каждый деплой — источник может меняться)
   ansible.builtin.command: /usr/local/sbin/update-ru-ruleset.sh
-  args:
-    creates: /var/lib/sing-box/ru.srs
+  register: ru_ruleset_build
+  changed_when: "'обновлён' in ru_ruleset_build.stdout"
+  notify: restart sing-box
 
 - name: Таймер обновления RU rule_set (раз в сутки)
   ansible.builtin.template:
@@ -101,6 +103,56 @@
     mode: "0644"
   notify: restart mesh-route
 
+# --- Серверный сертификат (Let's Encrypt, HTTP-01) ---
+- name: Установить certbot
+  ansible.builtin.apt:
+    name: certbot
+    state: present
+
+- name: Выпустить серт Let's Encrypt (HTTP-01, standalone на :80)
+  ansible.builtin.command:
+    cmd: >-
+      certbot certonly --standalone --non-interactive --agree-tos
+      {% if ingress_le_email | length > 0 %}-m {{ ingress_le_email }}{% else %}--register-unsafely-without-email{% endif %}
+      -d {{ ingress_le_domain }}
+    creates: "/etc/letsencrypt/live/{{ ingress_le_domain }}/fullchain.pem"
+
+- name: Каталоги swanctl для серта/ключа
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop: ["/etc/swanctl/x509", "/etc/swanctl/private"]
+
+- name: Хук на продление серта (копирует в swanctl и перезагружает)
+  ansible.builtin.copy:
+    dest: /etc/letsencrypt/renewal-hooks/deploy/swanctl-reload.sh
+    owner: root
+    group: root
+    mode: "0755"
+    content: |
+      #!/bin/sh
+      set -e
+      D="{{ ingress_le_domain }}"
+      install -m 0644 "/etc/letsencrypt/live/$D/fullchain.pem" "{{ ingress_server_cert_path }}"
+      install -m 0600 "/etc/letsencrypt/live/$D/privkey.pem"   "{{ ingress_server_key_path }}"
+      swanctl --load-creds || true
+
+- name: Разместить серт/ключ в swanctl (первичная установка)
+  ansible.builtin.copy:
+    src: "/etc/letsencrypt/live/{{ ingress_le_domain }}/{{ item.src }}"
+    dest: "{{ item.dst }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { src: "fullchain.pem", dst: "{{ ingress_server_cert_path }}", mode: "0644" }
+    - { src: "privkey.pem", dst: "{{ ingress_server_key_path }}", mode: "0600" }
+  notify: reload swanctl
+
 # --- strongSwan ---
 - name: swanctl.conf (IKEv2 + EAP-RADIUS)
   ansible.builtin.template:
@@ -127,4 +179,26 @@
     enabled: true
     state: started
     daemon_reload: true
-  loop: [sing-box, mesh-route, "ru-ruleset.timer", strongswan]
+  loop: [sing-box, mesh-route, "ru-ruleset.timer"]
+
+# charon рестартим всегда: иначе работающий с прошлого прогона демон не подхватит
+# свежеустановленные плагины (openssl для ECDSA-серта LE) и обновлённый конфиг.
+- name: Перезапустить strongswan-starter (charon подхватывает плагины/конфиг)
+  ansible.builtin.systemd:
+    name: strongswan-starter
+    enabled: true
+    state: restarted
+    daemon_reload: true
+
+- name: Дать charon подняться
+  ansible.builtin.wait_for:
+    timeout: 5
+
+# strongswan-starter (charon) сам грузит ipsec.conf, но НЕ swanctl.conf — загружаем явно.
+- name: Загрузить swanctl-конфиг (conns + creds) в charon
+  ansible.builtin.command: swanctl --load-all
+  register: swanctl_load
+  changed_when: "'loaded connection' in swanctl_load.stdout or 'unloaded' in swanctl_load.stdout"
+  retries: 3
+  delay: 3
+  until: swanctl_load.rc == 0

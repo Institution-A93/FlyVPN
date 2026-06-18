@@ -1,0 +1,92 @@
+name: deploy-ingress
+# Провижн + конфигурация RU ingress (Selectel/OpenStack, окружение mmvp-ingress).
+# Отдельно от deploy.yml (Hetzner). Apply/Ansible защищены Environment production.
+# (mesh Reality + RADIUS + LE-серт сшиты; конфиг едет из INGRESS_VAULT.)
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/kind-pasteur-2IMEz]
+    paths:
+      - ".github/workflows/deploy-ingress.yml"
+      - "infra/terraform/environments/mmvp-ingress/**"
+      - "infra/terraform/modules/ingress/**"
+      - "infra/ansible/roles/ingress/**"
+      - "infra/ansible/roles/common/**"
+permissions:
+  contents: read
+concurrency:
+  group: deploy-ingress
+  cancel-in-progress: false
+jobs:
+  provision:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      AWS_ACCESS_KEY_ID: ${{ secrets.HCLOUD_S3_ACCESS_KEY }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.HCLOUD_S3_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.8.5"
+
+      - name: OpenTofu apply (ingress)
+        working-directory: infra/terraform/environments/mmvp-ingress
+        env:
+          OPENSTACK_RC: ${{ secrets.OPENSTACK_RC }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          set -e
+          umask 077
+          printf '%s\n' "$OPENSTACK_RC" > os.rc
+          # shellcheck disable=SC1091
+          source ./os.rc
+          rm -f os.rc
+          printf '%s\n' "$SSH_PRIVATE_KEY" > deploy_key
+          chmod 600 deploy_key
+          TF_VAR_ssh_public_key="$(ssh-keygen -y -f deploy_key)"
+          export TF_VAR_ssh_public_key
+          rm -f deploy_key
+          tofu init -input=false
+          tofu apply -input=false -auto-approve
+          echo "INGRESS_IP=$(tofu output -raw ingress_public_ipv4)" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Ansible
+        run: |
+          python -m pip install --upgrade pip
+          pip install ansible-core
+          ansible-galaxy collection install -r infra/ansible/requirements.yml
+
+      - name: Materialize secrets & inventory
+        working-directory: infra/ansible
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          INGRESS_VAULT: ${{ secrets.INGRESS_VAULT }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          mkdir -p group_vars/ingress
+          printf '%s\n' "$INGRESS_VAULT" > group_vars/ingress/vault.yml
+          cat > inventory.ini <<INV
+          [ingress]
+          edge-1 ansible_host=${INGRESS_IP}
+          [all:vars]
+          ansible_user=root
+          ansible_ssh_private_key_file=~/.ssh/deploy
+          ansible_ssh_common_args=-o StrictHostKeyChecking=accept-new
+          INV
+
+      - name: Дождаться SSH на свежем узле
+        run: sleep 40
+
+      - name: Ansible (ingress)
+        working-directory: infra/ansible
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: ansible-playbook site.yml --limit ingress

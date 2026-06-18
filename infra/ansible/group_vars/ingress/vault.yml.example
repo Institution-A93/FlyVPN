@@ -1,15 +1,18 @@
-# Скопировать в group_vars/ingress/vault.yml и зашифровать (ansible-vault encrypt ...).
+# Содержимое GitHub-секрета INGRESS_VAULT (на деплое → group_vars/ingress/vault.yml).
 # Реальный vault.yml — в .gitignore (group_vars/*/vault.yml). На phase 2 подаёт оркестратор.
+# Параметры Reality согласованы с egress (тот же keypair/shortId/uuid/SNI).
 
-# Reality-клиент к egress (public_key/short_id/uuid соответствуют egress).
-ingress_egress_server: "203.0.113.50"
-ingress_reality_uuid: "CHANGE-ME-uuid"
-ingress_reality_public_key: "CHANGE-ME-reality-public-key"
-ingress_reality_short_id: "0123abcd"
+# --- Reality mesh: ingress (клиент) → egress (сервер) ---
+ingress_egress_server: "EGRESS_PUBLIC_IP"          # публичный IP egress (Hetzner)
+ingress_egress_port: 443
+ingress_reality_uuid: "PUT-CLIENT-UUID"            # = один из egress_clients[].uuid
+ingress_reality_public_key: "PUT-REALITY-PUBLIC"   # x25519 public (пара к egress_reality_private_key)
+ingress_reality_short_id: "PUT-SHORT-ID"           # = один из egress_reality_short_ids
+ingress_reality_server_name: "www.lovo.ai"         # SNI-камуфляж (= egress_reality_server_name)
 
-# RADIUS на control plane (тот же secret, что в clients.conf control-plane).
-ingress_radius_server: "203.0.113.11"
-ingress_radius_secret: "CHANGE-ME-radius-client-secret"
+# --- RADIUS → control plane ---
+ingress_radius_server: "api.fly-vpn.net"           # адрес control (RADIUS auth/acct)
+ingress_radius_secret: "PUT-RADIUS-SECRET"         # = secret в cp_radius_clients на control
 
-# id сервера IKEv2 (CN серверного серта).
-ingress_vpn_id: "vpn.example.com"
+# --- Let's Encrypt (серверный серт IKEv2 для vpn.fly-vpn.net) ---
+ingress_le_email: "you@example.com"                # e-mail регистрации ACME (опц.)

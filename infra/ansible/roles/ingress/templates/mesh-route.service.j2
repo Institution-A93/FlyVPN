@@ -2,6 +2,9 @@
 Description=Policy-routing клиентского трафика (10.8.0.0/14) в TUN sing-box
 After=sing-box.service
 Requires=sing-box.service
+# Рестарт/стоп sing-box пересоздаёт TUN и сносит маршрут в table 100 —
+# PartOf заставляет mesh-route переподняться следом и переставить маршрут.
+PartOf=sing-box.service
 
 [Service]
 Type=oneshot

@@ -1,17 +1,17 @@
 ---
-# Системный DNS — на резолверы Hetzner ДО любых apt. Это чинит возможный перехват
-# resolv.conf локальным unbound (на egress) от предыдущего прогона и гарантирует,
-# что apt/скачивания резолвят имена с самого начала.
-- name: Системный resolv.conf — резолверы Hetzner
+# Системный DNS — ПУБЛИЧНЫЕ резолверы ДО любых apt. Работают и на Hetzner, и на Selectel
+# (резолверы Hetzner 185.12.64.x с RU-узлов недостижимы → DNS/скачивания висли). Чинит и
+# возможный перехват resolv.conf локальным unbound от предыдущего прогона.
+- name: Системный resolv.conf — публичные резолверы
   ansible.builtin.copy:
     dest: /etc/resolv.conf
     owner: root
     group: root
     mode: "0644"
     content: |
-      # Управляется Ansible (роль common). Системный DNS — резолверы Hetzner.
-      nameserver 185.12.64.1
-      nameserver 185.12.64.2
+      # Управляется Ansible (роль common). Публичные резолверы (универсально).
+      nameserver 1.1.1.1
+      nameserver 8.8.8.8
 
 # SSH: вариант A (ADR-0016) — порт открыт, защита только ключом + fail2ban.
 - name: Установить fail2ban
