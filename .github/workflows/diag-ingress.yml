@@ -10,7 +10,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Test client DNS path (172.19.0.1 pushed to client)
+      - name: Verify client DNS hijack + full fetch from pool src
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -20,14 +20,11 @@ jobs:
           ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
             set +e
             command -v dig >/dev/null || apt-get install -y -q dnsutils >/dev/null 2>&1
+            echo "== pushed client DNS in swanctl pool =="; grep -A4 client_pool /etc/swanctl/swanctl.conf | grep dns
             ip addr add 10.8.0.9/32 dev lo 2>/dev/null
-            echo "== DNS to 172.19.0.1 from pool src (mimics phone) =="
-            dig +timeout=5 +tries=1 -b 10.8.0.9 @172.19.0.1 example.com A +short 2>&1 | head -5 || true
-            echo "rc=$?"
-            echo "== DNS to 172.19.0.1 (no source bind) =="
-            dig +timeout=5 +tries=1 @172.19.0.1 example.com A +short 2>&1 | head -5 || true
-            echo "== for comparison: full fetch with that DNS forced (pool src) =="
-            curl --interface 10.8.0.9 --dns-servers 172.19.0.1 -s -m 15 https://ipinfo.io/ip 2>&1 | head -3 || echo "curl --dns-servers unsupported or FAIL"
-            echo "== sing-box dns-related log =="; journalctl -u sing-box --no-pager -n 15 2>&1 | grep -iE "dns|sniff|reject|error" | tail -10 || echo "(no dns log lines)"
+            echo "== DNS to 1.1.1.1 from pool src (mimics phone, expect A record) =="
+            dig +timeout=6 +tries=1 -b 10.8.0.9 @1.1.1.1 example.com A +short 2>&1 | head -3
+            echo "== resolve a RU domain via 1.1.1.1 (expect RU A) =="
+            dig +timeout=6 +tries=1 -b 10.8.0.9 @1.1.1.1 gosuslugi.ru A +short 2>&1 | head -3
             ip addr del 10.8.0.9/32 dev lo 2>/dev/null
           '
