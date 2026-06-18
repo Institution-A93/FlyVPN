@@ -10,7 +10,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Verify client DNS hijack + full fetch from pool src
+      - name: Diagnose gosuslugi routing
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -19,12 +19,15 @@ jobs:
           chmod 600 ~/.ssh/deploy
           ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
             set +e
-            command -v dig >/dev/null || apt-get install -y -q dnsutils >/dev/null 2>&1
-            echo "== pushed client DNS in swanctl pool =="; grep -A4 client_pool /etc/swanctl/swanctl.conf | grep dns
+            echo "== gosuslugi IPs (via our DNS path) =="
+            for h in gosuslugi.ru www.gosuslugi.ru esia.gosuslugi.ru; do
+              echo -n "$h -> "; dig +short +timeout=5 @1.1.1.1 "$h" A | tr "\n" " "; echo
+            done
+            echo "== is 213.59.x / those IPs in ipdeny RU zone? =="
+            curl -fsSL -m 20 https://www.ipdeny.com/ipblocks/data/countries/ru.zone -o /tmp/ru.zone && wc -l < /tmp/ru.zone
+            grep -E "^213\.59\." /tmp/ru.zone | head -5 || echo "213.59.x NOT in RU zone"
+            echo "== fetch gosuslugi as client (pool src) =="
             ip addr add 10.8.0.9/32 dev lo 2>/dev/null
-            echo "== DNS to 1.1.1.1 from pool src (mimics phone, expect A record) =="
-            dig +timeout=6 +tries=1 -b 10.8.0.9 @1.1.1.1 example.com A +short 2>&1 | head -3
-            echo "== resolve a RU domain via 1.1.1.1 (expect RU A) =="
-            dig +timeout=6 +tries=1 -b 10.8.0.9 @1.1.1.1 gosuslugi.ru A +short 2>&1 | head -3
+            curl --interface 10.8.0.9 -s -m 20 -o /dev/null -w "code=%{http_code} exit_remote=%{remote_ip} t=%{time_total}s\n" https://www.gosuslugi.ru/ 2>&1
             ip addr del 10.8.0.9/32 dev lo 2>/dev/null
           '
