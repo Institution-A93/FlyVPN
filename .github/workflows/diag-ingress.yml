@@ -10,7 +10,7 @@ jobs:
   diag:
     runs-on: ubuntu-latest
     steps:
-      - name: Capture real client IKE/EAP/RADIUS outcome
+      - name: Inspect + rebuild RU rule_set, restart sing-box
         env:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
@@ -18,10 +18,10 @@ jobs:
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
           chmod 600 ~/.ssh/deploy
           ssh -i ~/.ssh/deploy -o StrictHostKeyChecking=accept-new root@87.228.102.223 '
-            echo "== active SAs (established?) =="; swanctl --list-sas 2>&1 | head -25 || echo none
-            echo "== client IKE/EAP/RADIUS events (last 6 min) =="
-            journalctl -u strongswan-starter --since "-6min" --no-pager 2>&1 \
-              | grep -iE "EAP|RADIUS|authentication (of|failed|succ)|established|CHILD_SA|installing|Access-|reauth|retransmit|received cfg|assigned|no shared|timeout" \
-              | grep -ivE "scanner|listplugins" \
-              | tail -90 || echo "no client events in window"
+            echo "== current ru.srs =="; ls -l /var/lib/sing-box/ru.srs 2>&1 || echo absent
+            echo "== rebuild ru.srs (runs updater; shows prefix count) =="
+            /usr/local/sbin/update-ru-ruleset.sh 2>&1 | tail -5 || echo "updater FAILED"
+            echo "== ru.srs after =="; ls -l /var/lib/sing-box/ru.srs 2>&1 || echo absent
+            echo "== restart sing-box =="; systemctl restart sing-box && sleep 2 && systemctl is-active sing-box
+            echo "== sing-box log tail =="; journalctl -u sing-box --no-pager -n 12 2>&1 | tail -12
           '
