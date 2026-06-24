@@ -1,0 +1,83 @@
+---
+# --- Гейт: токен обязателен (vault, ADR-0012) ---
+- name: Проверить, что bot_token передан
+  ansible.builtin.assert:
+    that:
+      - bot_token | length > 0
+    fail_msg: >-
+      bot_token должен прийти из vault (см. README роли и ADR-0012); на деплое —
+      из GitHub-секрета CONTROL_BOT (zz_bot.yml). В репозитории его нет.
+    quiet: true
+
+# --- Python-рантайм (только для services/bot; исключение из Go — ADR-0019) ---
+- name: Установить Python-рантайм
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-venv
+    state: present
+    update_cache: true
+
+- name: Системный пользователь бота
+  ansible.builtin.user:
+    name: "{{ bot_user }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: Каталоги бота
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ bot_dir }}"
+    - "{{ bot_env_dir }}"
+
+- name: Доставить исходники бота на узел
+  ansible.builtin.copy:
+    src: "{{ bot_src }}"
+    dest: "{{ bot_dir }}/"
+    owner: root
+    group: root
+    mode: "0644"
+    directory_mode: "0755"
+  notify: restart flyvpn-bot
+
+- name: Создать venv
+  ansible.builtin.command:
+    cmd: "python3 -m venv {{ bot_dir }}/.venv"
+    creates: "{{ bot_dir }}/.venv/bin/python"
+
+- name: Установить зависимости в venv
+  ansible.builtin.pip:
+    requirements: "{{ bot_dir }}/requirements.txt"
+    virtualenv: "{{ bot_dir }}/.venv"
+  notify: restart flyvpn-bot
+
+- name: EnvironmentFile бота (секреты из vault)
+  ansible.builtin.template:
+    src: bot.env.j2
+    dest: "{{ bot_env_dir }}/bot.env"
+    owner: root
+    group: "{{ bot_user }}"
+    mode: "0640"
+  notify: restart flyvpn-bot
+
+- name: systemd-юнит бота
+  ansible.builtin.template:
+    src: flyvpn-bot.service.j2
+    dest: /etc/systemd/system/flyvpn-bot.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart flyvpn-bot
+
+- name: Включить и запустить бота
+  ansible.builtin.systemd:
+    name: flyvpn-bot
+    enabled: true
+    state: started
+    daemon_reload: true

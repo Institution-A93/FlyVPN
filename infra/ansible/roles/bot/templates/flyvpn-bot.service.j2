@@ -1,0 +1,20 @@
+[Unit]
+Description=FLY VPN Telegram bot (aiogram, long-polling)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User={{ bot_user }}
+WorkingDirectory={{ bot_dir }}
+EnvironmentFile={{ bot_env_dir }}/bot.env
+Environment=PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ExecStart={{ bot_dir }}/.venv/bin/python -m bot
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

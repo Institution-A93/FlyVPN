@@ -1,0 +1,19 @@
+---
+# Telegram-бот (Python/aiogram, ADR-0019). Long-polling; /notify только на localhost.
+bot_user: "flyvpnbot"                 # выделенный системный пользователь
+bot_dir: "/opt/flyvpn-bot"            # код + venv
+bot_env_dir: "/etc/flyvpn-bot"
+bot_src: "{{ playbook_dir }}/../../services/bot/"   # источник в репозитории
+
+# --- Не-секретный конфиг ---
+bot_cabinet_url: "https://flynet.pro/login"
+bot_support_url: "https://t.me/flyvpn_support"
+bot_brand_name: "FLY VPN"
+bot_vpn_remote: "gw.flynet.pro"
+bot_vpn_remote_id: "gw.flynet.pro"
+bot_notify_host: "127.0.0.1"          # endpoint /notify — только локально
+bot_notify_port: 8081
+
+# --- СЕКРЕТЫ (vault, ADR-0012) — по умолчанию пусты, роль падает без bot_token ---
+bot_token: ""                         # из vault / GitHub-секрета CONTROL_BOT (zz_bot.yml)
+bot_notify_secret: "dev-secret"       # рекомендуется переопределить из vault

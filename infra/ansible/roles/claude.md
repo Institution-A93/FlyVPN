@@ -8,6 +8,7 @@
     <e path="./ingress">стек ingress</e>
     <e path="./egress">стек egress</e>
     <e path="./control-plane">стек control plane</e>
+    <e path="./bot">Telegram-бот на control plane (Python/aiogram, ADR-0019)</e>
   </entrypoints>
   <depends-on/>
 </dir>

@@ -1,0 +1,11 @@
+---
+galaxy_info:
+  role_name: bot
+  description: FLY VPN Telegram bot (Python/aiogram, ADR-0019) — venv + systemd, long-polling
+  license: AGPL-3.0-only
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+dependencies: []

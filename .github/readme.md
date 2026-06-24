@@ -22,6 +22,7 @@ Workflow'ы — в [`workflows/`](./workflows/readme.md):
 | `OPENSTACK_RC`          | RC-блок Selectel/OpenStack (`export OS_*`) для провижна ingress (`deploy-ingress`) |
 | `INGRESS_VAULT`         | Содержимое `group_vars/ingress/vault.yml`: Reality-mesh к egress + RADIUS + LE-email |
 | `CONTROL_RADIUS`        | `cp_radius_clients` (ingress как RADIUS-клиент: name/ipaddr/secret). Отдельно от `CONTROL_VAULT` |
+| `CONTROL_BOT`           | Креды Telegram-бота (YAML): `bot_token`, `bot_notify_secret`. Опционально — без него роль `bot` пропускается (ADR-0019) |
 
 ### Variables (там же → Variables)
 | Переменная             | Что это |

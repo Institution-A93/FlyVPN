@@ -17,6 +17,9 @@
   become: true
   roles:
     - control-plane
+    # Бот деплоится только если задан токен (CONTROL_BOT → zz_bot.yml). Иначе пропускается.
+    - role: bot
+      when: bot_token | length > 0
 
 - name: Configure ingress nodes
   hosts: ingress
