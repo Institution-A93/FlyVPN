@@ -10,6 +10,40 @@
 
 ---
 
+## ⚠️ Пересмотр скоупа (ADR-0021) — заменяет план ниже
+
+> **Этот документ (draft v3) описывает самописную Go-плоскость entitlement. ADR-0021
+> переводит её на RADIUS-native + панель OpenWISP. Разделы ниже сохранены как
+> история и контракт периферии, но в части entitlement читать через призму ADR-0021.**
+
+**Новый шов — две фазы:**
+
+- **Фаза A — RADIUS-native ядро + операторская панель (сначала, легируемое руками).**
+  Каноническая FreeRADIUS-схема на PostgreSQL 16 (`radcheck`/`radacct`/`radusergroup`),
+  EAP-MSCHAPv2 из `NT-Password` через `rlm_sql` (ADR-0014), нативный месячный счётчик
+  трафика, CoA/Disconnect (strongSwan `dae`), **OpenWISP RADIUS** на control-plane
+  (Django/PostgreSQL/REST API), зажатый по безопасности. Проверено спайком —
+  `docs/research/spike-openwisp-eap-mschapv2.md`.
+- **Фаза B — периферия как тонкие переводчики (следующим шагом).** Telegram-вход,
+  Platega, `.mobileconfig`, рефералка пишут в нативную схему / через OpenWISP REST
+  API, а не ведут параллельную модель.
+
+**Растворяется из ранее описанного/написанного:**
+
+| Было (draft v3) | Становится (ADR-0021) |
+|-----------------|------------------------|
+| `usage_log`, bespoke `subscriptions`/quota | каноническая FR-схема + нативные счётчики |
+| Оркестратор: cron расхода/сброса/порогов/реф-расчёта | нативный `MonthlyTrafficCounter` + CoA; у оркестратора остаётся узлы/health/ротация |
+| `account-api`: auth/сессии/entitlements/devices | OpenWISP (панель + REST API) |
+| Миграции `0003`–`0005` | superseded |
+| `account-api` целиком | тонкий переводчик Platega→entitlement + `.mobileconfig` (кандидат на слияние с `config-api`) |
+
+Удаление кода — отдельным шагом реализации Фазы A, не этим документом. Сохраняются:
+**ADR-0005/0014** (EAP-MSCHAPv2/NT-hash — переутверждены спайком), **ADR-0020**
+(Platega — но как переводчик, пишущий entitlement-строки, а не своя модель подписок).
+
+---
+
 ## 1. What already exists (do not rebuild)
 
 The MMVP is a working "smart VPN for RU": foreign traffic egresses abroad, RU traffic goes direct (ASN/GeoIP split). Verified live on iPhone 2026-06-18.
