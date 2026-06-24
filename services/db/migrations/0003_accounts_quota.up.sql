@@ -31,6 +31,11 @@ ALTER TABLE subscriptions ALTER COLUMN current_period_start SET NOT NULL;
 ALTER TABLE subscriptions ALTER COLUMN kind                 SET NOT NULL;
 ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_kind_check CHECK (kind IN ('trial', 'paid'));
 
+-- MVP-подписки (trial / Platega-paid) не имеют Digiseller-кода: ослабляем NOT NULL.
+-- UNIQUE сохраняется (в Postgres допускает множество NULL) — идемпотентность Digiseller
+-- по plati_order_id не страдает. Связь Platega-платежа с подпиской — через payments (0004).
+ALTER TABLE subscriptions ALTER COLUMN plati_order_id DROP NOT NULL;
+
 -- plan: MVP канонизирует месячный план как '30d' (CHECK 0001 уже его допускает).
 -- Старые значения 90d/365d остаются валидными для legacy-строк MMVP — CHECK не трогаем,
 -- чтобы не ломать 0001 (см. §4.2: "keep 30d").
