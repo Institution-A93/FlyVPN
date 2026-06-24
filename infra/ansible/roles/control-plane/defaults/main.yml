@@ -44,3 +44,22 @@ cp_default_plan: "30d"
 
 cp_orch_listen: ":9090"
 cp_orch_health_interval: "30s"
+
+# --- account-api (веб-кабинет MVP, ADR-0020) ---
+# Слушает plain-HTTP на :8080; TLS и публичный домен (api.flynet.pro) — за reverse-proxy
+# (config-api уже держит :443 на этом узле). Запускается только при заданном JWT-секрете.
+cp_accountapi_listen: ":8080"
+cp_accountapi_public_base_url: "https://flynet.pro"
+cp_accountapi_vpn_remote: "{{ cp_configapi_vpn_remote }}"        # тот же ingress-endpoint
+cp_accountapi_vpn_remote_id: "{{ cp_configapi_vpn_remote_id }}"
+cp_accountapi_org: "FLY VPN"
+cp_accountapi_display_name: "FLY VPN"
+# СЕКРЕТЫ (vault, ADR-0012) — по умолчанию пусты. Без JWT-секрета сервис не запускается.
+cp_accountapi_jwt_secret: ""           # подпись access-JWT (обяз. для запуска)
+cp_accountapi_telegram_bot_token: ""   # валидация Telegram login-widget (опц.)
+cp_accountapi_twilio_sid: ""           # Twilio (опц.; без него OTP = 0000)
+cp_accountapi_twilio_token: ""
+cp_accountapi_twilio_from: ""
+cp_accountapi_platega_base_url: "https://app.platega.io"
+cp_accountapi_platega_merchant_id: "" # Platega (опц.; без него purchase/webhook -> 503)
+cp_accountapi_platega_secret: ""

@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        svc: [config-api, orchestrator]
+        svc: [config-api, account-api, orchestrator]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5

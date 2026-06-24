@@ -101,6 +101,36 @@
     path: "{{ cp_migrations_dir }}/0002_nodes_public_ip_unique.up.sql"
   when: not cp_m2_check.query_result[0].exists
 
+# --- MVP-миграции аккаунт-слоя (0003–0005). Идемпотентны по маркеру-схеме. ---
+- name: Проверить применённость MVP-миграций (маркеры по колонкам/таблицам)
+  community.postgresql.postgresql_query:
+    db: "{{ cp_db_name }}"
+    login_unix_socket: /var/run/postgresql
+    query: >-
+      SELECT
+        EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name='users' AND column_name='referral_code') AS m3,
+        to_regclass('public.payments') IS NOT NULL AS m4,
+        EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name='auth_credentials' AND column_name='revoked_reason') AS m5
+  become: true
+  become_user: postgres
+  register: cp_mvp_check
+
+- name: Применить MVP-миграции (как владелец app)
+  community.postgresql.postgresql_script:
+    db: "{{ cp_db_name }}"
+    login_user: "{{ cp_db_app_user }}"
+    login_password: "{{ cp_db_app_password }}"
+    login_host: "{{ cp_db_host }}"
+    port: "{{ cp_db_port }}"
+    path: "{{ cp_migrations_dir }}/{{ item.file }}"
+  when: not cp_mvp_check.query_result[0][item.marker]
+  loop:
+    - { file: "0003_accounts_quota.up.sql", marker: "m3" }
+    - { file: "0004_identities_billing.up.sql", marker: "m4" }
+    - { file: "0005_revoke_reason.up.sql", marker: "m5" }
+
 # FreeRADIUS читает только auth_credentials → выдаём ему лишь SELECT на неё.
 - name: Выдать SELECT на auth_credentials read-only роли
   community.postgresql.postgresql_privs:
@@ -199,9 +229,11 @@
     GOPATH: /tmp/gopath
   loop:
     - { dir: config-api, bin: config-api }
+    - { dir: account-api, bin: account-api }
     - { dir: orchestrator, bin: orchestrator }
   notify:
     - restart config-api
+    - restart account-api
     - restart orchestrator
 
 - name: EnvironmentFile config-api
@@ -222,6 +254,15 @@
     mode: "0640"
   notify: restart orchestrator
 
+- name: EnvironmentFile account-api
+  ansible.builtin.template:
+    src: account-api.env.j2
+    dest: /etc/smartinternet/account-api.env
+    owner: root
+    group: smartinternet
+    mode: "0640"
+  notify: restart account-api
+
 - name: systemd-юниты сервисов
   ansible.builtin.template:
     src: "{{ item }}.service.j2"
@@ -229,15 +270,26 @@
     owner: root
     group: root
     mode: "0644"
-  loop: [config-api, orchestrator]
+  loop: [config-api, account-api, orchestrator]
   notify:
     - restart config-api
+    - restart account-api
     - restart orchestrator
 
-- name: Включить и запустить Go-сервисы
+- name: Включить и запустить Go-сервисы (config-api, orchestrator)
   ansible.builtin.systemd:
     name: "{{ item }}"
     enabled: true
     state: started
     daemon_reload: true
   loop: [config-api, orchestrator]
+
+# account-api запускаем только при заданном JWT-секрете (иначе FromEnv падает на старте).
+# Без секрета юнит остаётся установленным, но не активируется — деплой не падает.
+- name: Включить и запустить account-api (если задан JWT-секрет)
+  ansible.builtin.systemd:
+    name: account-api
+    enabled: true
+    state: started
+    daemon_reload: true
+  when: cp_accountapi_jwt_secret | length > 0

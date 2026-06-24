@@ -132,3 +132,22 @@ ipinfo.io и пр. Причина — **назначение блокирует 
 - На устройстве выводить такие домены МИМО VPN (split-tunnel), чтобы шли с «жилого» IP юзера —
   но iOS `.mobileconfig` per-domain split ограничен (OnDemand/per-app), нужна проработка.
 - Честно обозначить в продукте: «госуслуги/банки могут не работать через VPN».
+
+---
+
+## B5. TLS-фронт для account-api (веб-кабинет + вебхук Platega)
+
+**Факт.** `account-api` (MVP, веб-кабинет) слушает plain-HTTP `:8080` на control plane, но
+`:443` уже занят `config-api` (ACME для `api.fly-vpn.net`). Вебхук Platega и фронтенд
+кабинета требуют публичный HTTPS-эндпоинт.
+
+**Что нужно.**
+- Reverse-proxy (nginx/Caddy) на control plane: TLS-терминация для `api.flynet.pro`
+  (кабинет/API account-api) и, при желании, проксирование config-api по hostname; ИЛИ
+  вынести account-api на отдельный узел/домен.
+- Открыть `443` под прокси в TF-firewall control plane; ACME для `api.flynet.pro`.
+- Вебхук `POST /webhooks/payments/platega` должен быть доступен Platega снаружи по HTTPS.
+
+**Пока не сделано:** account-api деплоится и слушает локально; публичный TLS-фронт —
+эта задача. Без него кабинет/вебхук недоступны снаружи (сам сервис при этом рабочий —
+проверено интеграционно и e2e по HTTP).

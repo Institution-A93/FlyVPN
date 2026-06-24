@@ -23,6 +23,7 @@ Workflow'ы — в [`workflows/`](./workflows/readme.md):
 | `INGRESS_VAULT`         | Содержимое `group_vars/ingress/vault.yml`: Reality-mesh к egress + RADIUS + LE-email |
 | `CONTROL_RADIUS`        | `cp_radius_clients` (ingress как RADIUS-клиент: name/ipaddr/secret). Отдельно от `CONTROL_VAULT` |
 | `CONTROL_BOT`           | Креды Telegram-бота (YAML): `bot_token`, `bot_notify_secret`. Опционально — без него роль `bot` пропускается (ADR-0019) |
+| `CONTROL_ACCOUNT`       | Секреты account-api (YAML): `cp_accountapi_jwt_secret` (обяз. для запуска), опц. `cp_accountapi_platega_*`, `cp_accountapi_twilio_*`, `cp_accountapi_telegram_bot_token`. Без JWT-секрета account-api не активируется; без Platega — purchase/webhook 503 (ADR-0020) |
 
 ### Variables (там же → Variables)
 | Переменная             | Что это |
