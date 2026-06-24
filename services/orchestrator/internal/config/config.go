@@ -9,18 +9,24 @@ import (
 )
 
 type Config struct {
-	ListenAddr     string        // admin/HTTP API
-	DatabaseURL    string        // DSN PostgreSQL
-	HealthInterval time.Duration // период health-проверок
-	HealthThreshold int          // подряд-неудач до пометки down
+	ListenAddr      string        // admin/HTTP API
+	DatabaseURL     string        // DSN PostgreSQL
+	HealthInterval  time.Duration // период health-проверок
+	HealthThreshold int           // подряд-неудач до пометки down
+
+	// Cron-обязанности аккаунт-слоя MVP (docs/backend-requirements.md §10).
+	CronSweepInterval time.Duration // частый sweep: истечение/квота/пороги
+	CronHouseInterval time.Duration // часовой housekeeping: ролл периода, OTP, платежи
 }
 
 func FromEnv() (Config, error) {
 	c := Config{
-		ListenAddr:      getenv("ORCH_LISTEN", ":9090"),
-		DatabaseURL:     os.Getenv("ORCH_DATABASE_URL"),
-		HealthInterval:  getdur("ORCH_HEALTH_INTERVAL", 30*time.Second),
-		HealthThreshold: getint("ORCH_HEALTH_THRESHOLD", 3),
+		ListenAddr:        getenv("ORCH_LISTEN", ":9090"),
+		DatabaseURL:       os.Getenv("ORCH_DATABASE_URL"),
+		HealthInterval:    getdur("ORCH_HEALTH_INTERVAL", 30*time.Second),
+		HealthThreshold:   getint("ORCH_HEALTH_THRESHOLD", 3),
+		CronSweepInterval: getdur("ORCH_CRON_SWEEP_INTERVAL", 2*time.Minute),
+		CronHouseInterval: getdur("ORCH_CRON_HOUSE_INTERVAL", time.Hour),
 	}
 	if c.DatabaseURL == "" {
 		return Config{}, fmt.Errorf("ORCH_DATABASE_URL не задан")

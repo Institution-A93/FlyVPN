@@ -226,7 +226,7 @@ func (s *Store) DeleteAccount(ctx context.Context, userID string) error {
 	defer tx.Rollback(ctx) //nolint:errcheck
 
 	for _, q := range []string{
-		`UPDATE auth_credentials SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`,
+		`UPDATE auth_credentials SET revoked_at = now(), revoked_reason = 'account_deleted' WHERE user_id = $1 AND revoked_at IS NULL`,
 		`UPDATE sessions SET revoked_at = now() WHERE user_id = $1 AND revoked_at IS NULL`,
 		`DELETE FROM telegram_identities WHERE user_id = $1`,
 		`DELETE FROM phone_identities WHERE user_id = $1`,

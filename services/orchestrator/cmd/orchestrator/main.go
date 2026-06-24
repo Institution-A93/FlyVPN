@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/institution-a93/flyvpn/services/orchestrator/internal/config"
+	"github.com/institution-a93/flyvpn/services/orchestrator/internal/cron"
 	"github.com/institution-a93/flyvpn/services/orchestrator/internal/health"
 	"github.com/institution-a93/flyvpn/services/orchestrator/internal/httpapi"
 	"github.com/institution-a93/flyvpn/services/orchestrator/internal/store"
@@ -43,6 +44,9 @@ func main() {
 	}
 	checker := health.NewChecker(st, probes, cfg.HealthThreshold)
 	go checker.Run(ctx, cfg.HealthInterval)
+
+	// Cron-обязанности аккаунт-слоя MVP: истечение/квота/пороги + ролл периода/OTP/платежи.
+	go cron.New(st, log).Run(ctx, cfg.CronSweepInterval, cfg.CronHouseInterval)
 
 	srv := httpapi.New(st, log)
 	httpServer := &http.Server{

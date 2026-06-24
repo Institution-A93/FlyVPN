@@ -63,7 +63,7 @@ func (s *Store) ListDevices(ctx context.Context, userID string) ([]Device, error
 // RevokeDevice отзывает кред пользователя (revoked_at) — FreeRADIUS перестаёт его принимать.
 // ErrNotFound, если кред не принадлежит юзеру или уже отозван.
 func (s *Store) RevokeDevice(ctx context.Context, userID, deviceID string) error {
-	ct, err := s.pool.Exec(ctx, `UPDATE auth_credentials SET revoked_at = now()
+	ct, err := s.pool.Exec(ctx, `UPDATE auth_credentials SET revoked_at = now(), revoked_reason = 'user'
 		WHERE id = $1 AND user_id = $2 AND revoked_at IS NULL`, deviceID, userID)
 	if err != nil {
 		var pgErr *pgconn.PgError

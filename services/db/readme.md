@@ -23,6 +23,8 @@ NT-hash (MD4) для MSCHAPv2, не bcrypt (ADR-0014). `node_secrets.secret_valu
   месяц как `30d` (уже допустим), legacy `90d/365d` остаются валидны.
 - `0004_identities_billing` — новые таблицы: `telegram_identities`, `phone_identities`, `otp_codes`,
   `sessions`, `payments` (Platega, ADR-0020), `referrals`, `notification_events`, `audit_log`.
+- `0005_revoke_reason` — `auth_credentials.revoked_reason` (`user`/`expiry`/`quota`/`account_deleted`):
+  оркестратор включает обратно только quota/expiry-блокировки, не воскрешая удалённые/вручную отозванные креды.
 
 ## Проверка
 Применяется на PostgreSQL 16 (проверено: 0001 создаёт 6 таблиц с FK/индексами/CHECK,

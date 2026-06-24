@@ -109,8 +109,10 @@ func (s *Store) ConfirmPayment(ctx context.Context, paymentID, providerID string
 		return err
 	}
 
-	// Снимаем возможную quota/expiry-блокировку прошлых кредов (top-up — стабильные креды).
-	if _, err = tx.Exec(ctx, `UPDATE auth_credentials SET revoked_at = NULL WHERE user_id = $1`, userID); err != nil {
+	// Снимаем ТОЛЬКО quota/expiry-блокировку прошлых кредов (top-up — стабильные креды).
+	// Удалённые аккаунтом / вручную отозванные устройства не воскрешаем (revoked_reason).
+	if _, err = tx.Exec(ctx, `UPDATE auth_credentials SET revoked_at = NULL, revoked_reason = NULL
+		WHERE user_id = $1 AND revoked_reason IN ('quota','expiry')`, userID); err != nil {
 		return err
 	}
 
