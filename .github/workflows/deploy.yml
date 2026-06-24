@@ -57,6 +57,7 @@ jobs:
           CONTROL_VAULT: ${{ secrets.CONTROL_VAULT }}
           CONTROL_DIGISELLER: ${{ secrets.CONTROL_DIGISELLER }}
           CONTROL_RADIUS: ${{ secrets.CONTROL_RADIUS }}
+          CONTROL_BOT: ${{ secrets.CONTROL_BOT }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
@@ -71,6 +72,10 @@ jobs:
           fi
           if [ -n "${CONTROL_RADIUS:-}" ]; then
             printf '%s\n' "$CONTROL_RADIUS" > group_vars/control/zz_radius.yml
+          fi
+          # Бот: без CONTROL_BOT роль `bot` пропускается (when в site.yml), деплой не падает.
+          if [ -n "${CONTROL_BOT:-}" ]; then
+            printf '%s\n' "$CONTROL_BOT" > group_vars/control/zz_bot.yml
           fi
           cat > inventory.ini <<INV
           [egress]

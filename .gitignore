@@ -39,6 +39,7 @@ group_vars/*/vault.yml
 # Доп. секреты control — отдельные секреты CONTROL_DIGISELLER/CONTROL_RADIUS, материализуются на деплое.
 group_vars/*/zz_digiseller.yml
 group_vars/*/zz_radius.yml
+group_vars/*/zz_bot.yml
 # Реальный inventory: IP узлов оперативно чувствительны (вне репозитория)
 inventory.ini
 inventory/*.ini
@@ -49,6 +50,11 @@ inventory/*.ini
 *.test
 *.out
 vendor/
+
+# --- Python (services/bot) ---
+__pycache__/
+*.pyc
+.venv/
 
 # --- Misc ---
 .DS_Store

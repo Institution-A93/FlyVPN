@@ -24,3 +24,23 @@ jobs:
           go build ./...
           go vet ./...
           go test ./...   # интеграционные тесты сами пропускаются без *_TEST_DSN
+
+  python:
+    # Бот — Python/aiogram (ADR-0019): линт + смоук импортов.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # как на control plane (Debian bookworm)
+      - name: install deps + linter
+        working-directory: services/bot
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt ruff
+      - name: lint (ruff)
+        working-directory: services/bot
+        run: ruff check .
+      - name: import smoke
+        working-directory: services/bot
+        run: python -c "import bot.main, bot.handlers, bot.notifications, bot.keyboards, bot.texts, bot.mock_data, bot.vpnconfig"

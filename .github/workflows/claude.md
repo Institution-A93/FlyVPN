@@ -8,7 +8,7 @@
   <entrypoints>
     <e path="./deploy.yml">apply + Ansible</e>
     <e path="./plan.yml">tofu plan</e>
-    <e path="./test.yml">go тесты</e>
+    <e path="./test.yml">go тесты (config-api/orchestrator) + python-линт/смоук бота</e>
   </entrypoints>
   <depends-on/>
 </dir>

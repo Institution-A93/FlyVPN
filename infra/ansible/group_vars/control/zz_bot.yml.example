@@ -1,0 +1,6 @@
+# Содержимое GitHub-секрета CONTROL_BOT (Settings → Secrets → Actions).
+# На деплое материализуется как group_vars/control/zz_bot.yml (в .gitignore).
+# Имя zz_* сортируется ПОСЛЕ vault.yml → перекрывает пустые значения оттуда.
+# Без bot_token роль `bot` падает (гейт в tasks/main.yml).
+bot_token: "123456789:AA-replace-with-BotFather-token"   # токен из @BotFather
+bot_notify_secret: "CHANGE-ME-strong-secret"             # секрет для POST /notify (orchestrator → бот)
