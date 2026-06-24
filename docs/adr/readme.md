@@ -27,3 +27,4 @@
 | 0017 | DNS на egress — резолвер sing-box, без unbound          | accepted |
 | 0018 | Plati — через Digiseller unique-code (не HMAC-вебхук)    | accepted |
 | 0019 | Telegram-бот — Python/aiogram (исключение из Go-инварианта) | accepted |
+| 0020 | Платежи MVP — Platega.io (вебхук); заменяет ADR-0018 в скоупе MVP | proposed |
