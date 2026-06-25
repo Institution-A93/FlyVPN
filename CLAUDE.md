@@ -3,9 +3,13 @@
   <readme href="./README.md"/>
 
   <summary>
-    Умный VPN для РФ: российский трафик идёт напрямую через RU-узел, зарубежный —
-    через DPI-устойчивый туннель на зарубежный узел. Доставка — .mobileconfig для
-    iOS/macOS, продажа через Plati.market. Полная архитектура и тех-спек — в README.md.
+    Умный VPN для РФ и диаспоры: трафик к «своему» региону идёт напрямую, к «чужому» —
+    через DPI-устойчивый туннель. Узлы симметричны: РФ-юзер → загран-выход, диаспора →
+    РФ-выход (ADR-0023). Клиент — strongSwan IKEv2; доставка профиля .mobileconfig (iOS)
+    / .sswan + strongSwan-app (Android) через Telegram-бот (ADR-0022). Доступ — нативный
+    FreeRADIUS/PostgreSQL; операторская поверхность — тонкий Go-сервис (панель +
+    идемпотентный контракт); коммерческий учёт — самописные коннекторы за швом renew()
+    (ADR-0021). Полная архитектура и тех-спек — в README.md.
   </summary>
 
   <doc-convention>
@@ -36,9 +40,12 @@
     <d>Egress + control plane — Hetzner (hcloud). Ingress — Selectel.</d>
     <d>Auth — RADIUS / EAP-MSCHAPv2: auth+accounting вынесены на control plane, RU-узел без юзерских данных.</d>
     <d>ASN-split включён с самого начала: RU-префиксы напрямую, остальное в туннель.</d>
-    <d>Plati-интеграция входит в MMVP (Digiseller unique-code + генерация .mobileconfig, ADR-0018).</d>
-    <d>IaC — first-class для обеих ролей; узлы — cattle, ротация = tofu apply.</d>
+    <d>Plati/Digiseller (unique-code, ADR-0018) — для MMVP; в MVP платежи через самописные коннекторы за швом renew() (Platega и др., ADR-0020/0021).</d>
+    <d>IaC — first-class; узлы симметричны (одна роль node: регион + вход/выход), двунаправленный РФ↔загран (ADR-0023); cattle, ротация = tofu apply.</d>
     <d>Только OSS-компоненты в стеке. IaC-тул — OpenTofu (не Terraform: BUSL ≠ OSS).</d>
+    <d>Плоскость entitlement — нативный FreeRADIUS на PostgreSQL (radcheck/radacct/sqlcounter, EAP-MSCHAPv2 из NT-hash); коммерческий учёт вне MVP (ADR-0021).</d>
+    <d>Операторская поверхность — тонкий Go-сервис: панель (нетех-суппорт) + идемпотентный контракт renew/provision/revoke; не платформа (ADR-0021).</d>
+    <d>Клиентская доставка — iOS .mobileconfig / Android strongSwan .sswan, оба через Telegram-бот (ADR-0022).</d>
   </decisions>
 
   <invariants>
@@ -47,14 +54,19 @@
     <i>Инфра-стек: OpenTofu для облака, Ansible для конфигурации. Backend-сервисы — Go (ADR-0013).</i>
     <i>Только OSS-компоненты: проприетарных SaaS/софта в стеке нет (напр. GeoDNS — не Cloudflare/NS1, а OSS-вариант).</i>
     <i>Самописное минимизируем: strongSwan, FreeRADIUS, sing-box, unbound — готовые компоненты.</i>
+    <i>Плоскость доступа — нативный FreeRADIUS на PostgreSQL; операторская поверхность — тонкий Go-сервис (панель + идемпотентный контракт), не платформа.</i>
+    <i>Единственный писатель в живой entitlement — контракт renew(); платёжные коннекторы и кнопки панели ходят только через него, не в живую инфру напрямую.</i>
   </invariants>
 
   <layout>
     <e path="./docs/adr">architecture decision records — зафиксированные решения</e>
     <e path="./infra/terraform">провижн облачных ресурсов по ролям (ingress/egress/control-plane)</e>
     <e path="./infra/ansible">конфигурация узлов</e>
-    <e path="./services/config-api">выдача по коду Plati/Digiseller, генерация .mobileconfig, выдача кредов</e>
-    <e path="./services/orchestrator">реестр узлов, health-check, ротация</e>
+    <e path="./services/config-api">генерация профилей .mobileconfig (iOS) и .sswan (Android), выдача кредов</e>
+    <e path="./services/orchestrator">реестр узлов, health-check, ротация, автопровизия, выбор exit-узла по направлению</e>
+    <e path="./services/account-api" status="растворяется">самописная Go-плоскость entitlement — снимается по ADR-0021 (доступ → нативный FreeRADIUS)</e>
+    <e path="(planned)">тонкий Go-сервис: операторская панель + идемпотентный контракт renew/provision/revoke над radcheck (ADR-0021)</e>
+    <e path="(planned)">платёжные коннекторы за швом renew() — коммерческий учёт вне MVP (ADR-0021)</e>
   </layout>
 
   <license id="AGPL-3.0-only" file="./LICENSE">
