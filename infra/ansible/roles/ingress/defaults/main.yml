@@ -41,6 +41,10 @@ ingress_radius_server: ""
 ingress_radius_secret: ""
 ingress_radius_auth_port: 1812
 ingress_radius_acct_port: 1813
+# CoA/Disconnect (DAE) — приём Disconnect-Request от control plane (анти-локаут):
+ingress_dae_listen: "0.0.0.0"
+ingress_dae_port: 3799
+ingress_dae_secret: ""   # из vault (INGRESS_VAULT)
 
 # Российские IP-подсети для rule_set (RU → direct). Нужен список РОССИЙСКИХ сетей
 # (GeoIP RU), НЕ список заблокированных ресурсов. ipdeny — бесплатный per-country zone
