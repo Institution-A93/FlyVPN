@@ -44,14 +44,14 @@ func New(pool *pgxpool.Pool) *Contract { return &Contract{pool: pool} }
 
 // Credential — состояние креда (для панели и выдачи профиля).
 type Credential struct {
-	ID          string
-	UserID      string
-	Username    string
-	FramedIP    string
-	ExpiresAt   *time.Time
-	TrafficCap  *int64
-	PeriodStart time.Time
-	RevokedAt   *time.Time
+	ID          string     `json:"id"`
+	UserID      string     `json:"user_id"`
+	Username    string     `json:"username"`
+	FramedIP    string     `json:"framed_ip"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	TrafficCap  *int64     `json:"traffic_cap_bytes"`
+	PeriodStart time.Time  `json:"period_start"`
+	RevokedAt   *time.Time `json:"revoked_at"`
 }
 
 // Provisioned — что вернуть для сборки профиля после Provision.
