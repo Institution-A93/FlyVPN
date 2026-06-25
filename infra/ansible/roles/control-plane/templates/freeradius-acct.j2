@@ -1,0 +1,9 @@
+# Acct-листенер RADIUS (ADR-0021): приём accounting от strongSwan (eap-radius
+# accounting=yes) → пишется в radacct запросами из mods-available/sql (accounting{}).
+# Дефолтный сайт уже зовёт sql в секции accounting; нужен лишь сам acct-листенер.
+listen {
+	ipaddr = *
+	port = {{ cp_radius_acct_port }}
+	type = acct
+	virtual_server = default
+}

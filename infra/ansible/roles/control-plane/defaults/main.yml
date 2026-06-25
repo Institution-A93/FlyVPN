@@ -70,3 +70,4 @@ cp_control_operator_token: ""         # bearer для панели/API опер�
 cp_control_webhook_secret: ""         # секрет для платёжных коннекторов (из vault)
 cp_control_dae_secret: ""             # общий секрет CoA/DAE с узлами (из vault)
 cp_control_dae_port: 3799
+cp_radius_acct_port: 1813              # FreeRADIUS acct-листенер (приём accounting от ingress)

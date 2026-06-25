@@ -163,6 +163,15 @@
     group: freerad
   notify: restart freeradius
 
+- name: Acct-листенер FreeRADIUS (приём accounting → radacct)
+  ansible.builtin.template:
+    src: freeradius-acct.j2
+    dest: /etc/freeradius/3.0/sites-enabled/flyvpn-acct
+    owner: root
+    group: freerad
+    mode: "0640"
+  notify: restart freeradius
+
 - name: Развернуть clients.conf (RADIUS-клиенты — ingress-узлы)
   ansible.builtin.template:
     src: clients.conf.j2

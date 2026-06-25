@@ -19,6 +19,10 @@ ingress_egress_port: 443
 # Симметрия (ADR-0023): ruleset «своего» региона → direct. РФ-вход → "ru"; загран-вход
 # (диаспора) ставит свой локальный набор (РФ тогда уходит в туннель к РФ-выходу).
 ingress_self_ruleset: "ru"
+# Allowlist для walled garden (ADR-0021): CIDR Telegram (официальный список). Расширяемо
+# (позже — платёжные сервисы). lapsed-юзеры (restricted-пул) ходят только сюда.
+ingress_allowlist_sources:
+  - "https://core.telegram.org/resources/cidr.txt"
 ingress_reality_uuid: ""             # client uuid (есть среди egress_clients)
 ingress_reality_public_key: ""       # public key Reality egress
 ingress_reality_short_id: ""         # shortId
