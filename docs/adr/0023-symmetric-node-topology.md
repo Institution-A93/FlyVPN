@@ -22,7 +22,8 @@
 - **IaC:** раздельные Ansible-роли `ingress`/`egress` сходятся в одну
   параметризованную роль **`node`** (регион + capability).
 - **Оркестратор:** реестр/провизия по региону; выбор exit-узла по направлению юзера.
-- **Entitlement:** в какие exit-регион(ы) юзер вправе — атрибут/группа в `radcheck`.
+- **Entitlement:** в какие exit-регион(ы) юзер вправе — атрибут/группа в
+  `auth_credentials` (своя схема, ADR-0021; не canonical radcheck).
 - **Routing:** ASN/GeoIP-split становится **двунаправленным** per-user/per-direction
   policy.
 - **Data plane:** sing-box mesh (ADR-0015) изначально двунаправленный → это

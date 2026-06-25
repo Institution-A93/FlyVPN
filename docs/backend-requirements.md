@@ -62,6 +62,16 @@
 
 ---
 
+---
+
+> # 📜 НИЖЕ — ИСТОРИЯ (draft v3, MMVP→MVP-account-api)
+>
+> **Всё, что ниже этой черты, описывает прежнюю самописную Go-плоскость
+> (account-api, `usage_log`/`subscriptions`, рефералы, месячный сброс квоты,
+> Prometheus-в-MVP). Это СУПЕРСЕДНУТО разделом «⚠️ Пересмотр скоупа» выше и
+> ADR-0021/0022/0023.** Сохранено как история и как контракт периферии. При
+> противоречии — приоритет у врезки выше и у ADR.
+
 ## 1. What already exists (do not rebuild)
 
 The MMVP is a working "smart VPN for RU": foreign traffic egresses abroad, RU traffic goes direct (ASN/GeoIP split). Verified live on iPhone 2026-06-18.

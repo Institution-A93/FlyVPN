@@ -31,3 +31,5 @@
 | 0021 | Плоскость entitlement — FreeRADIUS-native (своя auth_credentials) + единый Go-бинарь control (panel CRUD + contract + profiles + fleet); amends 0020 | proposed |
 | 0022 | Клиентская доставка — iOS .mobileconfig / Android strongSwan .sswan / Telegram | proposed |
 | 0023 | Симметричная топология узлов — двунаправленный РФ↔загран; amends 0003/0004/0006 | proposed |
+
+**Цепочка изменений (MVP-пивот):** 0020 заменяет платёжный путь 0018/0007 в скоупе MVP; **0021** amends 0020 (Platega → коннектор за `renew()`; своя `auth_credentials`, не radcheck; операторская поверхность = бинарь `control`); **0023** amends 0003/0004/0006 (роли узлов сходятся в симметричный `node`, сплит двунаправленный). 0005/0014/0013/0015 переутверждены. Статус 0020–0023 — `proposed` до живой проверки CoA и first end-to-end.

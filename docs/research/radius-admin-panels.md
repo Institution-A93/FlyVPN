@@ -47,20 +47,22 @@ RADIUS-среде, а не держать самописную Go-плоскос
 
 ## Вывод
 
-**OpenWISP RADIUS** уникально закрывает оба ограничения и вдобавок всасывает кусок
-будущей периферии (телефон-OTP, само-регистрация, REST API под Platega-переводчик).
-Его Django-модели — это каноническая FR-схема (`radcheck`/`radacct`), поэтому
-EAP-MSCHAPv2 идёт через проверенный `rlm_sql`+`NT-Password`, а управление, CoA и
-счётчики — поверх тех же строк.
+> **Итог (ADR-0021): панель НЕ берём — ни OpenWISP, ни другую.** Операторская
+> поверхность = тонкий свой Go-бинарь `control` (panel CRUD + contract) над **своей
+> `auth_credentials`** (не canonical radcheck). Сравнение ниже — разведка ландшафта:
+> почему ни одна готовая панель не подошла под наш стек (PostgreSQL + EAP-MSCHAPv2 +
+> один человек).
 
-- **daloRADIUS** — сильный второй, если приоритет «максимально сырая прозрачность»
-  и мы готовы держать RADIUS-подсистему на MariaDB; но без REST API периферию
-  подключать грязнее.
-- **RADIUSdesk** — слабейший фит: своя модель + MySQL + mesh-направленность.
+Для справки, как читался ландшафт на момент разведки:
+- **OpenWISP** — единственный зрелый с панелью+API на PostgreSQL, но Django+Celery+
+  Redis тяжелы под команду из трёх человек; и его модели — canonical `radcheck`,
+  который нам не нужен (своя схема).
+- **daloRADIUS** — панель без программного API + MariaDB-центр.
+- **RADIUSdesk** — своя модель + MySQL + mesh-направленность.
 
-Решение зафиксировано в **ADR-0021**. Рискованное звено (EAP-MSCHAPv2 через
-`rlm_sql` на PostgreSQL) проверено спайком — см.
-[spike-openwisp-eap-mschapv2.md](./spike-openwisp-eap-mschapv2.md).
+Рискованное звено (EAP-MSCHAPv2 из NT-hash на PostgreSQL) проверено спайком — см.
+[spike-openwisp-eap-mschapv2.md](./spike-openwisp-eap-mschapv2.md); механизм тот же
+для нашей `auth_credentials`.
 
 ## Источники
 

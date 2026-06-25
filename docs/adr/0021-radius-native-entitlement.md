@@ -69,6 +69,9 @@ EAP-MSCHAPv2/MS-CHAP из одного NT-hash; accounting `Start/Interim/Stop` 
 - Ретенция `radacct` (decision #10) — упростить/отложить.
 - Лицевой счёт / коммерческий учёт — вне MVP (коннекторы).
 - Панель — **ручной CRUD** (не read-only) через `contract`.
+- **NT-hash — стабильный**: при продлении кред не меняется (не ротируется). Это
+  снимает конфликт с прежней логикой `config-api.Issue()`, которая ротировала
+  `nt_hash` на каждую покупку — в `contract` ротации нет.
 
 **Отвергнуто** (`docs/research/billing-and-bss-options.md`,
 `docs/research/radius-admin-panels.md`): OpenWISP (тяжёлый), daloRADIUS (панель без

@@ -39,7 +39,7 @@
     <d>Инфраструктура — сразу реальное облако (не local-first).</d>
     <d>Egress + control plane — Hetzner (hcloud). Ingress — Selectel.</d>
     <d>Auth — RADIUS / EAP-MSCHAPv2: auth+accounting вынесены на control plane, RU-узел без юзерских данных.</d>
-    <d>ASN-split включён с самого начала: RU-префиксы напрямую, остальное в туннель.</d>
+    <d>Сплит трафика: к «своему» региону напрямую, к «чужому» в туннель; двунаправленный РФ↔загран (ADR-0023). Реализация пока GeoIP-CIDR; ASN-гранулярность — backlog B3.</d>
     <d>Plati/Digiseller (unique-code, ADR-0018) — для MMVP; в MVP платежи через самописные коннекторы за швом renew() (Platega и др., ADR-0020/0021).</d>
     <d>IaC — first-class; узлы симметричны (одна роль node: регион + вход/выход), двунаправленный РФ↔загран (ADR-0023); cattle, ротация = tofu apply.</d>
     <d>Только OSS-компоненты в стеке. IaC-тул — OpenTofu (не Terraform: BUSL ≠ OSS).</d>
