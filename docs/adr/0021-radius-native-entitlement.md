@@ -28,10 +28,20 @@ MVP-разработка свернула к самописной Go-плоск�
 
 ## Решение
 
-1. **Движок** — нативный FreeRADIUS на PostgreSQL, схема **`auth_credentials`
-   (своя, остаётся)** + **`radacct`** (учёт) + **`rlm_sqlcounter`** (кап МБ) +
-   **`Expiration`** (срок) + **CoA/`dae`** (обрыв живой сессии). EAP-MSCHAPv2 из
-   `NT-Password` (ADR-0014). Спайк подтвердил механизм на PG16 + FreeRADIUS 3.2.5.
+1. **Движок** — нативный FreeRADIUS на PostgreSQL, **своя `auth_credentials`**
+   (не canonical radcheck) + `radacct` (учёт). EAP-MSCHAPv2 из `NT-Password`
+   (ADR-0014). Срок (`expires_at`) и кап (`traffic_cap_bytes` vs `SUM(radacct)` с
+   `period_start`) — **прямо в SQL-запросах authorize**, без отдельных модулей
+   `expiration`/`sqlcounter`. Подписка = срок + кап, без переноса; продление =
+   сдвинуть `expires_at` + `period_start`. Проверено спайком (PG16 + FR 3.2.5).
+1a. **АНТИ-ЛОКАУТ (walled garden).** Доступ к Telegram/оплате остаётся **всегда** —
+   даже у истёкшего/исчерпавшего трафик. Срок/кап **НЕ режут auth**: туннель
+   поднимается у любого не-`revoked` креда. Три состояния: **active** → Framed-IP из
+   пула `10.8.0.0/14`, полный доступ; **lapsed** (истёк ИЛИ кап) → Framed-IP из
+   `10.12.0.0/14`, ingress sing-box пускает только **allowlist** (Telegram+DNS, позже
+   оплата); **revoked** (удалён/фрод) → auth reject. Класс выбирается в
+   `authorize_reply_query` по живому состоянию. Превышение **посреди** сессии →
+   CoA/Disconnect → реконнект пересаживает в restricted-пул (локаута нет).
 2. **Операторская поверхность — ОДИН Go-бинарь `control`** (модульный монолит,
    ADR-0013). Один pgx-пул, один HTTP-сервер (внутренний), одна фоновая горутина
    health, операторская авторизация (JWT — из `account-api`). Пакеты:

@@ -20,15 +20,17 @@ sql {
 {% raw %}
     sql_user_name = "%{%{Stripped-User-Name}:-%{User-Name}}"
 
-    # NT-Password из auth_credentials, если кред активен ПО ВСЕМ трём осям:
-    #   revoked_at IS NULL          — не отозван
-    #   expires_at > now()          — не истёк (лимит времени)
-    #   SUM(radacct) < cap          — не превышен кап МБ за период (с period_start; без переноса)
-    # Если любое нарушено — строка не вернётся → нет NT-Password → Access-Reject.
-    authorize_check_query = "SELECT 0 AS id, c.username AS username, 'NT-Password' AS attribute, '0x' || c.nt_hash AS value, ':=' AS op FROM auth_credentials c WHERE c.username = '%{SQL-User-Name}' AND c.revoked_at IS NULL AND (c.expires_at IS NULL OR c.expires_at > now()) AND (c.traffic_cap_bytes IS NULL OR c.traffic_cap_bytes > (SELECT COALESCE(SUM(a.acctinputoctets + a.acctoutputoctets), 0) FROM radacct a WHERE a.username = c.username AND a.acctstarttime >= c.period_start))"
+    # ANTI-LOCKOUT (ADR-0021): auth НЕ режем по сроку/капу — иначе lapsed-юзер не
+    # поднимет туннель и не дойдёт до Telegram/оплаты. NT-Password отдаём любому
+    # НЕ отозванному креду (revoked = удаление/фрод — единственный жёсткий отказ).
+    authorize_check_query = "SELECT 0 AS id, username AS username, 'NT-Password' AS attribute, '0x' || nt_hash AS value, ':=' AS op FROM auth_credentials WHERE username = '%{SQL-User-Name}' AND revoked_at IS NULL"
 
-    # Sticky Framed-IP-Address (выдаётся только при успешной проверке выше).
-    authorize_reply_query = "SELECT 0 AS id, username AS username, 'Framed-IP-Address' AS attribute, host(framed_ip) AS value, '=' AS op FROM auth_credentials WHERE username = '%{SQL-User-Name}' AND revoked_at IS NULL"
+    # Класс маршрутизации — ВЫБОР ПУЛА Framed-IP по живому состоянию:
+    #   active (в сроке И в капе) → активный пул 10.8.0.0/14 (sticky framed_ip)
+    #   lapsed (истёк ИЛИ кап)    → restricted пул 10.12.0.0/14 (тот же хост, сдвиг на /14)
+    # Ingress sing-box: для 10.12.0.0/14 маршрутизируется только allowlist (Telegram +
+    # DNS, позже платёжные сервисы), остальное — reject-route. Туннель поднят в обоих.
+    authorize_reply_query = "SELECT 0 AS id, c.username AS username, 'Framed-IP-Address' AS attribute, host(CASE WHEN (c.expires_at IS NULL OR c.expires_at > now()) AND (c.traffic_cap_bytes IS NULL OR c.traffic_cap_bytes > (SELECT COALESCE(SUM(a.acctinputoctets + a.acctoutputoctets), 0) FROM radacct a WHERE a.username = c.username AND a.acctstarttime >= c.period_start)) THEN c.framed_ip ELSE c.framed_ip + (inet '10.12.0.0' - inet '10.8.0.0') END) AS value, '=' AS op FROM auth_credentials c WHERE c.username = '%{SQL-User-Name}' AND c.revoked_at IS NULL"
 
     # Группы не используем.
     authorize_group_check_query = "SELECT 0 AS id, '' AS groupname, '' AS attribute, '' AS value, '' AS op WHERE false"
