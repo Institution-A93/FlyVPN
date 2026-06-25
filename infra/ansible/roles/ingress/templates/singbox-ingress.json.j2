@@ -45,7 +45,7 @@
   ],
   "route": {
     "rule_set": [
-      { "type": "local", "tag": "ru", "format": "binary", "path": "/var/lib/sing-box/ru.srs" },
+      { "type": "local", "tag": "self", "format": "binary", "path": "/var/lib/sing-box/{{ ingress_self_ruleset }}.srs" },
       { "type": "local", "tag": "allowlist", "format": "binary", "path": "/var/lib/sing-box/allowlist.srs" }
     ],
     "rules": [
@@ -53,7 +53,7 @@
       { "ip_is_private": true, "outbound": "direct" },
       { "source_ip_cidr": ["10.12.0.0/14"], "rule_set": "allowlist", "outbound": "vless-out" },
       { "source_ip_cidr": ["10.12.0.0/14"], "outbound": "block" },
-      { "rule_set": "ru", "outbound": "direct" }
+      { "rule_set": "self", "outbound": "direct" }
     ],
     "final": "vless-out"
   }

@@ -14,8 +14,11 @@ ingress_client_pool: "10.8.0.0/13"   # пул strongSwan (Framed-IP): 10.8.0.0/1
 ingress_route_table: 100
 
 # Reality-клиент → egress. Параметры/секреты от оркестратора (vault, ADR-0012).
-ingress_egress_server: ""            # публичный IP/host egress
+ingress_egress_server: ""            # публичный IP/host exit-узла (другого региона)
 ingress_egress_port: 443
+# Симметрия (ADR-0023): ruleset «своего» региона → direct. РФ-вход → "ru"; загран-вход
+# (диаспора) ставит свой локальный набор (РФ тогда уходит в туннель к РФ-выходу).
+ingress_self_ruleset: "ru"
 ingress_reality_uuid: ""             # client uuid (есть среди egress_clients)
 ingress_reality_public_key: ""       # public key Reality egress
 ingress_reality_short_id: ""         # shortId
