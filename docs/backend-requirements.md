@@ -13,34 +13,39 @@
 ## ⚠️ Пересмотр скоупа (ADR-0021) — заменяет план ниже
 
 > **Этот документ (draft v3) описывает самописную Go-плоскость entitlement. ADR-0021
-> переводит её на RADIUS-native + панель OpenWISP. Разделы ниже сохранены как
-> история и контракт периферии, но в части entitlement читать через призму ADR-0021.**
+> переводит её на FreeRADIUS-native (PostgreSQL); billing = один тонкий webhook.
+> Разделы ниже сохранены как история и контракт периферии, но в части entitlement
+> читать через призму ADR-0021.**
 
-**Новый шов — две фазы:**
+**Задача тривиальна:** покупка → доступ на срок + кап трафика. Поэтому плоскость
+доступа берём нативной (FreeRADIUS + PostgreSQL, спайк-проверено), без платформ
+поверх (OpenWISP/SHM/BSS — оверхед, см. `docs/research/billing-and-bss-options.md`).
 
-- **Фаза A — RADIUS-native ядро + операторская панель (сначала, легируемое руками).**
-  Каноническая FreeRADIUS-схема на PostgreSQL 16 (`radcheck`/`radacct`/`radusergroup`),
-  EAP-MSCHAPv2 из `NT-Password` через `rlm_sql` (ADR-0014), нативный месячный счётчик
-  трафика, CoA/Disconnect (strongSwan `dae`), **OpenWISP RADIUS** на control-plane
-  (Django/PostgreSQL/REST API), зажатый по безопасности. Проверено спайком —
-  `docs/research/spike-openwisp-eap-mschapv2.md`.
-- **Фаза B — периферия как тонкие переводчики (следующим шагом).** Telegram-вход,
-  Platega, `.mobileconfig`, рефералка пишут в нативную схему / через OpenWISP REST
-  API, а не ведут параллельную модель.
+**Минимальная форма:**
+
+- **Источник истины** — каноническая FreeRADIUS-схема на PostgreSQL 16
+  (`radcheck`/`radacct`/`radusergroup`); EAP-MSCHAPv2 из `NT-Password` через `rlm_sql`
+  (ADR-0014). Квота — `rlm_sqlcounter`; отрезание — CoA/Disconnect (strongSwan `dae`).
+- **Billing** — один тонкий webhook: Platega `CONFIRMED` → upsert `radcheck`
+  (срок + кап) + сброс счётчика. **One-shot**, без лицевого счёта/периодики.
+- **Выдача** — `.mobileconfig` (`config-api`). **Эксплуатация** — `psql` + SQL-вью;
+  GUI-панель (OpenWISP) опциональна и отложена.
+- **Telegram-вход** — координация с параллельным треком бота.
 
 **Растворяется из ранее описанного/написанного:**
 
 | Было (draft v3) | Становится (ADR-0021) |
 |-----------------|------------------------|
-| `usage_log`, bespoke `subscriptions`/quota | каноническая FR-схема + нативные счётчики |
-| Оркестратор: cron расхода/сброса/порогов/реф-расчёта | нативный `MonthlyTrafficCounter` + CoA; у оркестратора остаётся узлы/health/ротация |
-| `account-api`: auth/сессии/entitlements/devices | OpenWISP (панель + REST API) |
+| `usage_log`, bespoke `subscriptions`/quota | каноническая FR-схема + `rlm_sqlcounter` |
+| Оркестратор: cron расхода/сброса/порогов/реф-расчёта | нативный счётчик + CoA; у оркестратора остаётся узлы/health/ротация |
+| `account-api`: auth/сессии/entitlements/devices | снять; доступ — нативный FreeRADIUS |
 | Миграции `0003`–`0005` | superseded |
-| `account-api` целиком | тонкий переводчик Platega→entitlement + `.mobileconfig` (кандидат на слияние с `config-api`) |
+| `account-api` целиком | тонкий webhook Platega → `radcheck` + `.mobileconfig` (кандидат на слияние с `config-api`) |
+| Рефералка / `bonus_bytes` | вне MVP |
 
-Удаление кода — отдельным шагом реализации Фазы A, не этим документом. Сохраняются:
+Удаление кода — отдельным шагом реализации, не этим документом. Сохраняются:
 **ADR-0005/0014** (EAP-MSCHAPv2/NT-hash — переутверждены спайком), **ADR-0020**
-(Platega — но как переводчик, пишущий entitlement-строки, а не своя модель подписок).
+(Platega — но как тонкий webhook, пишущий `radcheck`, а не своя модель подписок).
 
 ---
 
