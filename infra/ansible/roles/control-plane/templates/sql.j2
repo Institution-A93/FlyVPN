@@ -1,6 +1,9 @@
-# FreeRADIUS SQL-модуль. Аутентификация EAP-MSCHAPv2 по NT-hash из auth_credentials.
-# Проверено на FreeRADIUS 3.2.5 + PostgreSQL 16 (Access-Accept + Framed-IP, отзыв через
-# revoked_at). Управляется Ansible — править здесь.
+# FreeRADIUS SQL-модуль (ADR-0021): нативный движок entitlement над auth_credentials.
+# authorize отдаёт NT-Password ТОЛЬКО если кред: не отозван, не истёк (срок), не
+# превысил кап (SUM(radacct) с period_start). Срок и кап — прямо здесь, без отдельных
+# модулей expiration/sqlcounter. accounting пишет radacct. Живой обрыв (превышение
+# посреди сессии) — через CoA/dae (см. eap-radius.conf). Проверено на FreeRADIUS 3.2.5
+# + PostgreSQL 16. Управляется Ansible — править здесь.
 sql {
     dialect = "{{ cp_freeradius_dialect }}"
     driver  = "rlm_sql_${dialect}"
@@ -12,19 +15,48 @@ sql {
     radius_db = "{{ cp_db_name }}"
 
     read_clients = no
+    acct_table1 = "radacct"
+    acct_table2 = "radacct"
 {% raw %}
     sql_user_name = "%{%{Stripped-User-Name}:-%{User-Name}}"
 
-    # NT-Password из auth_credentials, только не отозванные.
-    authorize_check_query = "SELECT 0 AS id, username AS username, 'NT-Password' AS attribute, '0x' || nt_hash AS value, ':=' AS op FROM auth_credentials WHERE username = '%{SQL-User-Name}' AND revoked_at IS NULL"
+    # NT-Password из auth_credentials, если кред активен ПО ВСЕМ трём осям:
+    #   revoked_at IS NULL          — не отозван
+    #   expires_at > now()          — не истёк (лимит времени)
+    #   SUM(radacct) < cap          — не превышен кап МБ за период (с period_start; без переноса)
+    # Если любое нарушено — строка не вернётся → нет NT-Password → Access-Reject.
+    authorize_check_query = "SELECT 0 AS id, c.username AS username, 'NT-Password' AS attribute, '0x' || c.nt_hash AS value, ':=' AS op FROM auth_credentials c WHERE c.username = '%{SQL-User-Name}' AND c.revoked_at IS NULL AND (c.expires_at IS NULL OR c.expires_at > now()) AND (c.traffic_cap_bytes IS NULL OR c.traffic_cap_bytes > (SELECT COALESCE(SUM(a.acctinputoctets + a.acctoutputoctets), 0) FROM radacct a WHERE a.username = c.username AND a.acctstarttime >= c.period_start))"
 
-    # Sticky Framed-IP-Address.
+    # Sticky Framed-IP-Address (выдаётся только при успешной проверке выше).
     authorize_reply_query = "SELECT 0 AS id, username AS username, 'Framed-IP-Address' AS attribute, host(framed_ip) AS value, '=' AS op FROM auth_credentials WHERE username = '%{SQL-User-Name}' AND revoked_at IS NULL"
 
     # Группы не используем.
     authorize_group_check_query = "SELECT 0 AS id, '' AS groupname, '' AS attribute, '' AS value, '' AS op WHERE false"
     authorize_group_reply_query = "SELECT 0 AS id, '' AS groupname, '' AS attribute, '' AS value, '' AS op WHERE false"
     group_membership_query = "SELECT '' AS groupname WHERE false"
+
+    # ---- ACCOUNTING → radacct (strongSwan eap-radius шлёт Start/Interim/Stop) ----
+    # Кумулятив на сессию: Start вставляет, Interim/Stop обновляют по AcctUniqueId;
+    # interim'ы не двоятся (берётся последнее кумулятивное значение октетов).
+    accounting {
+        reference = "%{tolower:type.%{Acct-Status-Type}.query}"
+        type {
+            start {
+                query = "INSERT INTO radacct (acctsessionid, acctuniqueid, username, nasipaddress, nasportid, nasporttype, acctstarttime, acctupdatetime, acctstoptime, acctsessiontime, acctauthentic, connectinfo_start, acctinputoctets, acctoutputoctets, calledstationid, callingstationid, servicetype, framedprotocol, framedipaddress) VALUES ('%{Acct-Session-Id}', '%{Acct-Unique-Session-Id}', '%{SQL-User-Name}', '%{%{NAS-IPv6-Address}:-%{NAS-IP-Address}}', NULLIF('%{%{NAS-Port-ID}:-%{NAS-Port}}', ''), '%{NAS-Port-Type}', TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), NULL, 0, '%{Acct-Authentic}', '%{Connect-Info}', 0, 0, '%{Called-Station-Id}', '%{Calling-Station-Id}', '%{Service-Type}', '%{Framed-Protocol}', NULLIF('%{Framed-IP-Address}', '')::inet) ON CONFLICT (acctuniqueid) DO UPDATE SET acctstarttime = TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), acctupdatetime = TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}) WHERE radacct.acctuniqueid = '%{Acct-Unique-Session-Id}' AND radacct.acctstoptime IS NULL"
+            }
+            interim-update {
+                query = "UPDATE radacct SET acctupdatetime = TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), acctsessiontime = %{%{Acct-Session-Time}:-NULL}, acctinputoctets = (('%{%{Acct-Input-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Input-Octets}:-0}'::bigint), acctoutputoctets = (('%{%{Acct-Output-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Output-Octets}:-0}'::bigint) WHERE acctuniqueid = '%{Acct-Unique-Session-Id}' AND acctstoptime IS NULL"
+            }
+            stop {
+                query = "UPDATE radacct SET acctstoptime = TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), acctupdatetime = TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), acctsessiontime = %{%{Acct-Session-Time}:-NULL}, acctinputoctets = (('%{%{Acct-Input-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Input-Octets}:-0}'::bigint), acctoutputoctets = (('%{%{Acct-Output-Gigawords}:-0}'::bigint << 32) + '%{%{Acct-Output-Octets}:-0}'::bigint), acctterminatecause = '%{Acct-Terminate-Cause}' WHERE acctuniqueid = '%{Acct-Unique-Session-Id}' AND acctstoptime IS NULL"
+            }
+            accounting-on  { query = "UPDATE radacct SET acctstoptime = TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), acctterminatecause = '%{Acct-Terminate-Cause}' WHERE acctstoptime IS NULL AND nasipaddress = '%{%{NAS-IPv6-Address}:-%{NAS-IP-Address}}'" }
+            accounting-off { query = "UPDATE radacct SET acctstoptime = TO_TIMESTAMP(%{%{integer:Event-Timestamp}:-%l}), acctterminatecause = '%{Acct-Terminate-Cause}' WHERE acctstoptime IS NULL AND nasipaddress = '%{%{NAS-IPv6-Address}:-%{NAS-IP-Address}}'" }
+        }
+    }
+
+    # Post-Auth-лог не ведём (нет radpostauth) — no-op, чтобы -sql в post-auth не шумел.
+    post-auth { query = "SELECT 1" }
 {% endraw %}
     pool {
         start = 1
