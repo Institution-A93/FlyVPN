@@ -31,8 +31,8 @@ func New(cfg config.Config, ct *contract.Contract, fl *fleet.Fleet, dis fleet.Di
 	return &Server{cfg: cfg, ct: ct, fl: fl, dis: dis, log: log}
 }
 
-func (s *Server) Routes() http.Handler {
-	mux := http.NewServeMux()
+// Register вешает ручки control на общий mux (рядом с панелью).
+func (s *Server) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /healthz", s.healthz)
 
 	// Узлы: self-register/heartbeat + список (оператор).
@@ -47,7 +47,6 @@ func (s *Server) Routes() http.Handler {
 
 	// Платёжные коннекторы (вне MVP-учёта): подтверждённый платёж → renew.
 	mux.HandleFunc("POST /webhooks/pay", s.webhookRenew)
-	return mux
 }
 
 func (s *Server) healthz(w http.ResponseWriter, _ *http.Request) {

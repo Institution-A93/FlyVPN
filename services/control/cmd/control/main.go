@@ -18,6 +18,7 @@ import (
 	"github.com/institution-a93/flyvpn/services/control/internal/contract"
 	"github.com/institution-a93/flyvpn/services/control/internal/fleet"
 	"github.com/institution-a93/flyvpn/services/control/internal/httpapi"
+	"github.com/institution-a93/flyvpn/services/control/internal/panel"
 	"github.com/institution-a93/flyvpn/services/control/internal/store"
 )
 
@@ -43,7 +44,10 @@ func main() {
 	ct := contract.New(pool)
 	fl := fleet.New(pool)
 	dis := fleet.RadclientDisconnector{Port: cfg.DAEPort, Secret: cfg.DAESecret}
-	srv := httpapi.New(cfg, ct, fl, dis, log)
+
+	mux := http.NewServeMux()
+	httpapi.New(cfg, ct, fl, dis, log).Register(mux)
+	panel.New(cfg.OperatorToken, cfg.Plans, ct, fl, log).Register(mux)
 
 	// Фоновая health-проверка узлов (egress: TLS Reality-порт; ingress: IKE-порт).
 	go func() {
@@ -66,7 +70,7 @@ func main() {
 		}
 	}()
 
-	httpServer := &http.Server{Addr: cfg.Listen, Handler: srv.Routes(), ReadHeaderTimeout: 10 * time.Second}
+	httpServer := &http.Server{Addr: cfg.Listen, Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		<-ctx.Done()
 		sh, cancel := context.WithTimeout(context.Background(), 5*time.Second)

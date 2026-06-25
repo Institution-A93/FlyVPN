@@ -149,6 +149,32 @@ func (c *Contract) Get(ctx context.Context, userID string) (Credential, error) {
 	return cr, nil
 }
 
+// Usage — израсходовано байт за текущий период (Σ radacct с period_start креда).
+func (c *Contract) Usage(ctx context.Context, userID string) (int64, error) {
+	var used int64
+	err := c.pool.QueryRow(ctx, `
+		SELECT COALESCE(SUM(a.acctinputoctets + a.acctoutputoctets), 0)
+		  FROM auth_credentials c
+		  LEFT JOIN radacct a ON a.username = c.username AND a.acctstarttime >= c.period_start
+		 WHERE c.user_id = $1`, userID).Scan(&used)
+	return used, err
+}
+
+// State — состояние доступа по живым данным: revoked (жёсткий отказ) / lapsed (истёк
+// или исчерпан кап → walled garden) / active (полный доступ).
+func State(cr Credential, used int64) string {
+	switch {
+	case cr.RevokedAt != nil:
+		return "revoked"
+	case cr.ExpiresAt != nil && cr.ExpiresAt.Before(time.Now()):
+		return "lapsed"
+	case cr.TrafficCap != nil && used >= *cr.TrafficCap:
+		return "lapsed"
+	default:
+		return "active"
+	}
+}
+
 // insertWithIP подбирает свободный sticky-IP из active-пула (повтор при коллизии).
 func insertWithIP(ctx context.Context, tx pgx.Tx, userID, username, ntHash string, expires time.Time, cap *int64) (string, error) {
 	for attempt := 0; attempt < ipAttempts; attempt++ {
