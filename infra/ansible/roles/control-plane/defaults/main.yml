@@ -63,3 +63,10 @@ cp_accountapi_twilio_from: ""
 cp_accountapi_platega_base_url: "https://app.platega.io"
 cp_accountapi_platega_merchant_id: "" # Platega (опц.; без него purchase/webhook -> 503)
 cp_accountapi_platega_secret: ""
+
+# control — единый бинарь (ADR-0021). Профильные дефолты переиспользуют cp_configapi_*.
+cp_control_listen: "127.0.0.1:8080"   # внутренний листенер (за приватной сетью)
+cp_control_operator_token: ""         # bearer для панели/API оператора (из vault)
+cp_control_webhook_secret: ""         # секрет для платёжных коннекторов (из vault)
+cp_control_dae_secret: ""             # общий секрет CoA/DAE с узлами (из vault)
+cp_control_dae_port: 3799

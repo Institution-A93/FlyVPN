@@ -9,21 +9,19 @@ permissions:
   contents: read
 jobs:
   go:
+    # Единый бинарь control (ADR-0021): contract/profiles/fleet/panel/httpapi.
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        svc: [config-api, account-api, orchestrator]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23"
       - name: build / vet / test
-        working-directory: services/${{ matrix.svc }}
+        working-directory: services/control
         run: |
           go build ./...
           go vet ./...
-          go test ./...   # интеграционные тесты сами пропускаются без *_TEST_DSN
+          go test ./...   # интеграционные тесты сами пропускаются без CONTROL_TEST_DSN
 
   python:
     # Бот — Python/aiogram (ADR-0019): линт + смоук импортов.

@@ -1,0 +1,19 @@
+[Unit]
+Description=FLY VPN control (panel + contract + fleet, ADR-0021)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+User=smartinternet
+EnvironmentFile=/etc/smartinternet/control.env
+ExecStart=/usr/local/bin/control
+Restart=on-failure
+RestartSec=3
+# Внутренний листенер (за приватной сетью) — привилегированные порты не нужны.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
