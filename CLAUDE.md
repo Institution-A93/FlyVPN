@@ -43,8 +43,8 @@
     <d>Plati/Digiseller (unique-code, ADR-0018) — для MMVP; в MVP платежи через самописные коннекторы за швом renew() (Platega и др., ADR-0020/0021).</d>
     <d>IaC — first-class; узлы симметричны (одна роль node: регион + вход/выход), двунаправленный РФ↔загран (ADR-0023); cattle, ротация = tofu apply.</d>
     <d>Только OSS-компоненты в стеке. IaC-тул — OpenTofu (не Terraform: BUSL ≠ OSS).</d>
-    <d>Плоскость entitlement — нативный FreeRADIUS на PostgreSQL (radcheck/radacct/sqlcounter, EAP-MSCHAPv2 из NT-hash); коммерческий учёт вне MVP (ADR-0021).</d>
-    <d>Операторская поверхность — тонкий Go-сервис: панель (нетех-суппорт) + идемпотентный контракт renew/provision/revoke; не платформа (ADR-0021).</d>
+    <d>Плоскость entitlement — нативный FreeRADIUS на PostgreSQL (своя auth_credentials + radacct/sqlcounter/Expiration, EAP-MSCHAPv2 из NT-hash); коммерческий учёт вне MVP (ADR-0021).</d>
+    <d>Операторская поверхность — ОДИН Go-бинарь control (модульный монолит): panel (ручной CRUD юзеров + узлы) + contract (CRUD, единственный писатель) + profiles + fleet; config-api/orchestrator сливаются в него (ADR-0021).</d>
     <d>Клиентская доставка — iOS .mobileconfig / Android strongSwan .sswan, оба через Telegram-бот (ADR-0022).</d>
   </decisions>
 
@@ -54,19 +54,19 @@
     <i>Инфра-стек: OpenTofu для облака, Ansible для конфигурации. Backend-сервисы — Go (ADR-0013).</i>
     <i>Только OSS-компоненты: проприетарных SaaS/софта в стеке нет (напр. GeoDNS — не Cloudflare/NS1, а OSS-вариант).</i>
     <i>Самописное минимизируем: strongSwan, FreeRADIUS, sing-box, unbound — готовые компоненты.</i>
-    <i>Плоскость доступа — нативный FreeRADIUS на PostgreSQL; операторская поверхность — тонкий Go-сервис (панель + идемпотентный контракт), не платформа.</i>
+    <i>Плоскость доступа — нативный FreeRADIUS на PostgreSQL; операторская поверхность — один Go-бинарь control (panel CRUD + contract + profiles + fleet), не платформа.</i>
     <i>Единственный писатель в живой entitlement — контракт renew(); платёжные коннекторы и кнопки панели ходят только через него, не в живую инфру напрямую.</i>
   </invariants>
 
   <layout>
     <e path="./docs/adr">architecture decision records — зафиксированные решения</e>
+    <e path="./docs/architecture">визуальные схемы (Graphviz): построенное и целевое</e>
     <e path="./infra/terraform">провижн облачных ресурсов по ролям (ingress/egress/control-plane)</e>
     <e path="./infra/ansible">конфигурация узлов</e>
-    <e path="./services/config-api">генерация профилей .mobileconfig (iOS) и .sswan (Android), выдача кредов</e>
-    <e path="./services/orchestrator">реестр узлов, health-check, ротация, автопровизия, выбор exit-узла по направлению</e>
-    <e path="./services/account-api" status="растворяется">самописная Go-плоскость entitlement — снимается по ADR-0021 (доступ → нативный FreeRADIUS)</e>
-    <e path="(planned)">тонкий Go-сервис: операторская панель + идемпотентный контракт renew/provision/revoke над radcheck (ADR-0021)</e>
-    <e path="(planned)">платёжные коннекторы за швом renew() — коммерческий учёт вне MVP (ADR-0021)</e>
+    <e path="(planned)/services/control" status="целевой">ЕДИНЫЙ Go-бинарь (модульный монолит): panel (ручной CRUD юзеров + узлы) + contract (CRUD над auth_credentials, единственный писатель) + profiles (.mobileconfig/.sswan) + fleet (health/реестр/автопровизия) + webhook-коннекторы (ADR-0021)</e>
+    <e path="./services/config-api" status="сливается в control">генерация профилей + Issue() → пакеты profiles/contract в control</e>
+    <e path="./services/orchestrator" status="сливается в control">реестр узлов, health, автопровизия → пакет fleet в control</e>
+    <e path="./services/account-api" status="растворяется">самописная Go-плоскость entitlement — снимается; донор каркаса (HTTP/store/NTHash/JWT) для control (ADR-0021)</e>
   </layout>
 
   <license id="AGPL-3.0-only" file="./LICENSE">

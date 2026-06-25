@@ -1,4 +1,4 @@
-# ADR-0021: Плоскость entitlement — FreeRADIUS-native (PostgreSQL) + тонкий Go-сервис (панель + идемпотентный контракт)
+# ADR-0021: Плоскость entitlement — нативный FreeRADIUS (PostgreSQL) + единый Go-бинарь `control`
 
 - Статус: proposed
 - Дата: 2026-06-25
@@ -9,87 +9,93 @@
 
 MVP-разработка свернула к самописной Go-плоскости entitlement (`account-api` + cron
 оркестратора + bespoke `usage_log`/`subscriptions`). Перебрали готовые платформы
-(OpenWISP, SHM, ABillS/Ubilling/Freeside/CGRateS, daloRADIUS) — все они машинерия под
-**бизнес крупнее нашего**. Для команды из трёх человек, продающей DPI-устойчивый VPN,
-задача тривиальна:
+(OpenWISP, SHM, ABillS/Ubilling/Freeside/CGRateS, daloRADIUS, NocoDB) — все либо
+машинерия под бизнес крупнее нашего, либо половина задачи. Для команды из трёх
+человек (один DevSecOps, один нетех-суппорт, один продукт) задача тривиальна:
 
 > Подписка = лимит по времени + лимит по МБ, **без переходящего остатка**; оплата →
 > услуга продлевается.
 
 **Коммерческий учёт — вне MVP** (его делают самописные коннекторы). В скоупе —
-**технический учёт**. Среда, которой уступаем, — сам **FreeRADIUS + PostgreSQL**
-(спайк-проверено). Готового лёгкого инструмента, где есть И панель, И идемпотентный
-API на PostgreSQL, **нет**: OpenWISP — оба, но тяжёлый (Django+Celery+Redis);
-daloRADIUS — панель без API + MariaDB-центричный; freeradius-api — API без панели.
-А идемпотентный контракт — наша доменная логика в любом случае. Значит **один тонкий
-Go-сервис делает обе вещи**.
+**технический учёт**. Среда, которой уступаем, — **FreeRADIUS + PostgreSQL**.
+
+Два уточнения от инвентаризации Go и масштаба «один человек»:
+- **Канонический `radcheck` не нужен.** Он требовался только под чужие панели. Раз
+  мы пишем свою панель — оставляем **уже построенную схему `auth_credentials`**
+  (прошита в `sql.j2`, провижится `config-api`, работает по ADR-0005).
+- **Один бинарь, не три.** `config-api` (есть `Issue()` + профили), `orchestrator`
+  (health + реестр) и новая панель — это **модульный монолит**, не три сервиса.
 
 ## Решение
 
-1. **Движок entitlement — каноническая FreeRADIUS-схема на PostgreSQL 16**
-   (`radcheck`/`radacct`/`radusergroup`). EAP-MSCHAPv2 из `NT-Password` (ADR-0014).
-   Квота — `rlm_sqlcounter`; отрезание — исключение в authorize + **CoA/`dae`**.
-   Подписка = `Expiration` (время) + кап (`sqlcounter`), без переноса; продление =
-   сдвинуть `Expiration` + сбросить счётчик. Своего кода в движке — ноль.
-2. **Операторская поверхность — тонкий Go-сервис (ADR-0013) с двумя лицами:**
-   - **Панель** (для нетехнического суппорта): найти юзера, статус подписки, трафик
-     (`Σ radacct`), сессии, кнопки `продлить/выключить`. Read-mostly, только
-     технический учёт.
-   - **Идемпотентный контракт**: REST `renew/provision/revoke` над `radcheck` —
-     **единственный писатель** в живой entitlement. Кнопки панели зовут его же →
-     один шов записи.
-   Заменяет OpenWISP/daloRADIUS (тяжёлый / панель-без-API+MariaDB). Это минимальное
-   оправданное самописное — та же категория, что оркестратор, не платформа.
-3. **Коммерческий учёт — вне MVP** → самописные коннекторы (платёжные адаптеры) на
-   краю зовут `renew()`. Добавить/сменить способ оплаты = правка только коннекторов,
-   живая инфра не трогается.
-4. **Три операторские плоскости, без god-panel:** (а) AAA/консоль = FreeRADIUS +
-   тонкий Go-сервис; (б) инфра/флот = оркестратор + IaC + Prometheus/Grafana (один
-   человек: пейджер); (в) data plane. Один человек = одна дневная консоль (панель) +
-   алерт-driven инфра.
+1. **Движок** — нативный FreeRADIUS на PostgreSQL, схема **`auth_credentials`
+   (своя, остаётся)** + **`radacct`** (учёт) + **`rlm_sqlcounter`** (кап МБ) +
+   **`Expiration`** (срок) + **CoA/`dae`** (обрыв живой сессии). EAP-MSCHAPv2 из
+   `NT-Password` (ADR-0014). Спайк подтвердил механизм на PG16 + FreeRADIUS 3.2.5.
+2. **Операторская поверхность — ОДИН Go-бинарь `control`** (модульный монолит,
+   ADR-0013). Один pgx-пул, один HTTP-сервер (внутренний), одна фоновая горутина
+   health, операторская авторизация (JWT — из `account-api`). Пакеты:
+   - **`panel`** — **ручной RADIUS-aware CRUD юзеров** (формы create/edit/delete/
+     search, дропдауны план/регион, ГБ, дата) + обзор узлов (health). Не сырые
+     строки — поэтому свой Go, а не NocoDB.
+   - **`contract`** — идемпотентный **CRUD `create/read/update/delete`** над
+     `auth_credentials` — **ЕДИНСТВЕННЫЙ писатель**. И панель, и коннекторы пишут
+     только через него. (= обобщённый `config-api.Issue()`.)
+   - **`profiles`** — `.mobileconfig` + `.sswan` (из `config-api`, + `.sswan`).
+   - **`fleet`** — health-пробы (TLS/TCP) + реестр узлов + автопровизия (из
+     `orchestrator`).
+3. **Коммерческий учёт — вне MVP** → платёжные коннекторы (webhook-хендлеры **в том
+   же бинаре**) зовут `contract`. Добавить/сменить способ оплаты = правка только
+   коннектора, живая инфра не трогается.
+4. **Без отдельного observability-стека и пейджера.** Флот виден в **той же панели**
+   (`fleet`); оркестрация/health — внутри `control`. Prometheus/Grafana/Alertmanager —
+   **отложено (B1)**, добавляется поверх когда вырастет флот. Telegram-бот — только
+   доставка профилей (не пейджер).
 5. **IaC vs рантайм-state:** IaC владеет инфрой и конфигом узлов; рантайм-данные
-   (`radcheck`/`radacct`) — в PostgreSQL через контракт. Конфликта нет — `openwisp-
-   controller` (который дрался бы с Ansible) намеренно **не берём**.
+   (`auth_credentials`/`radacct`/`nodes`) — в PostgreSQL через `control`. Конфликта
+   нет.
 
 ## Проверка (спайк, 2026-06-24)
 
 PostgreSQL 16.13 + FreeRADIUS 3.2.5 (`docs/research/spike-openwisp-eap-mschapv2.md`):
 EAP-MSCHAPv2/MS-CHAP из одного NT-hash; accounting `Start/Interim/Stop` →`radacct` с
-дедупом interim'ов; `SUM` = логика `sqlcounter`. CoA вживую не тестировался.
+дедупом interim'ов; `SUM` = логика `sqlcounter`. Механизм тот же для `auth_credentials`
+(NT-Password). CoA вживую не тестировался.
 
 ## Зафиксированные продуктовые решения
 
 - Рефералка / бонус-пул — вне MVP.
 - Telegram-вход — координация с параллельным треком бота.
 - Ретенция `radacct` (decision #10) — упростить/отложить.
-- Лицевой счёт / коммерческий учёт — отложены (делают коннекторы).
+- Лицевой счёт / коммерческий учёт — вне MVP (коннекторы).
+- Панель — **ручной CRUD** (не read-only) через `contract`.
 
 **Отвергнуто** (`docs/research/billing-and-bss-options.md`,
-`docs/research/radius-admin-panels.md`): OpenWISP как фундамент (тяжёлый),
-SHM/ABillS/Ubilling/Freeside/CGRateS (биллинг-бизнес), daloRADIUS (панель без API,
-MariaDB-центр), OpenWISP Subscriptions (коммерческий).
+`docs/research/radius-admin-panels.md`): OpenWISP (тяжёлый), daloRADIUS (панель без
+API + MariaDB), NocoDB/Baserow (сырые строки, не RADIUS-aware), SHM/ABillS/Ubilling/
+Freeside/CGRateS (биллинг-бизнес), канонический `radcheck` (не нужен — своя панель).
 
 ## Последствия
 
-**Растворяется**: `account-api` (auth/сессии/JWT/entitlements/devices),
-оркестраторские cron расхода/сброса, `usage_log`, bespoke `subscriptions`. Миграции
-`0003`–`0005` — superseded. У оркестратора остаётся реестр узлов / health / ротация /
-провизия.
-
-**Добавляется (мало)**: FreeRADIUS — accounting→`radacct`, `sqlcounter`, листенер CoA;
-strongSwan — `dae{}`; **тонкий Go-сервис (панель + контракт)**; платёжные коннекторы.
-
-**Переутверждается**: ADR-0005/0014/0013. **Amends ADR-0020**: Platega — один из
-коннекторов за `renew()`, не модель подписок.
+- **Растворяется**: `account-api` (auth/сессии/JWT/entitlements/devices) — но
+  **донор каркаса** для `control` (HTTP, store, credentials.NTHash, JWT-auth).
+  `usage_log`, bespoke `subscriptions`, cron-квоты оркестратора. Миграции `0003`–
+  `0005` — superseded.
+- **Сливаются в `control` пакетами**: `config-api` (`Issue()`/профили) и
+  `orchestrator` (health/реестр/автопровизия).
+- **Добавляется**: `radacct` + `sqlcounter` + `Expiration` + CoA/`dae` (FreeRADIUS/
+  strongSwan); бинарь `control`; платёжные коннекторы; операторская авторизация.
+- **Переутверждается**: ADR-0005/0014/0013. **Amends ADR-0020**: Platega — один из
+  коннекторов за `contract`, не модель подписок.
 
 ## Открытые места
 
-- `sqlcounter` под one-shot/подписку: кап + сброс на **продление** (не календарный
-  месяц) — выверить (`reset = never` + кап на период, либо проверка
-  `SUM(radacct) с момента продления ≥ кап` в authorize).
+- `sqlcounter` под подписку: кап + сброс на **продление** (не календарный месяц).
 - CoA — живой тест на развёртывании.
 - Окно ретенции `radacct`.
-- Объём UX панели для нетехнического суппорта.
+- Публичная vs внутренняя поверхность `control`: в лин-MVP доставку опосредует бот →
+  все эндпоинты внутренние; публичный URL выдачи профиля (если понадобится) — отдельный
+  листенер в том же бинаре.
 
-После живого CoA-теста и первого end-to-end (платёж → коннектор → `renew()` →
-`radcheck` → коннект) — перевести в `accepted`.
+После живого CoA-теста и первого end-to-end (коннектор → `contract` →
+`auth_credentials` → коннект) — перевести в `accepted`.

@@ -1,0 +1,77 @@
+digraph arch {
+  rankdir=TB; bgcolor="white"; fontname="Helvetica"; nodesep=0.5; ranksep=0.6;
+  labelloc=t; fontsize=22; fontname="Helvetica-Bold";
+  label="FLY VPN — ЦЕЛЕВАЯ АРХИТЕКТУРА MVP (один Go-бинарь)";
+  node [shape=plaintext fontname="Helvetica"];
+  edge [fontname="Helvetica" fontsize=12 color="#555555" penwidth=1.3];
+
+  clients [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="9">
+      <TR><TD BGCOLOR="#dfe7ef" COLSPAN="2"><B>КЛИЕНТЫ &#183; доставка через Telegram-бот (ADR-0022)</B></TD></TR>
+      <TR><TD BGCOLOR="#cfe8cf">iOS / macOS<BR/>.mobileconfig &#183; <B>без app</B></TD>
+          <TD BGCOLOR="#cfe0f7">Android<BR/>strongSwan app + .sswan</TD></TR>
+    </TABLE>>];
+
+  data [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="9">
+      <TR><TD BGCOLOR="#dbe6f6" COLSPAN="2"><B>DATA PLANE &#183; СИММЕТРИЧНЫЕ узлы (ADR-0023)</B></TD></TR>
+      <TR><TD BGCOLOR="#cfe8cf">РФ-узлы<BR/>вход + выход</TD>
+          <TD BGCOLOR="#cfe8cf">загран-узлы<BR/>вход + выход</TD></TR>
+      <TR><TD COLSPAN="2"><FONT POINT-SIZE="11">sing-box VLESS-Reality двунаправленно &#183; РФ-юзер&#8594;загран-выход &#183; диаспора&#8594;РФ-выход</FONT></TD></TR>
+    </TABLE>>];
+
+  aaa [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="9">
+      <TR><TD BGCOLOR="#dceedc" COLSPAN="2"><B>AAA / ENTITLEMENT &#183; нативный движок (спайк-проверен)</B></TD></TR>
+      <TR><TD BGCOLOR="#cfe8cf">FreeRADIUS &#183; EAP-MSCHAPv2 (NT-hash)<BR/>+ sqlcounter (кап МБ) &#183; CoA/dae (обрыв)</TD>
+          <TD BGCOLOR="#cfe0f7">PostgreSQL<BR/>auth_credentials <B>(своя, остаётся)</B><BR/>+ radacct &#183; + Expiration <B>(новое)</B></TD></TR>
+    </TABLE>>];
+
+  control [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="10">
+      <TR><TD BGCOLOR="#f6ecc9" COLSPAN="2"><B>&#9733; ЕДИНЫЙ Go-БИНАРЬ (control) &#183; модульный монолит</B><BR/><FONT POINT-SIZE="10">один pgx-пул &#183; один HTTP-сервер (внутренний) &#183; одна фоновая горутина health &#183; операторская авторизация (JWT)</FONT></TD></TR>
+      <TR><TD BGCOLOR="#cfe0f7">пакет <B>panel</B><BR/><B>ручной CRUD юзеров</B> (формы) + узлы<BR/><FONT POINT-SIZE="10">новое &#183; RADIUS-aware, не сырые строки</FONT></TD>
+          <TD BGCOLOR="#cfe0f7">пакет <B>contract</B> &#183; <B>CRUD</B><BR/>create / read / update / delete<BR/><FONT POINT-SIZE="10">единственный писатель &#183; из config-api Issue()</FONT></TD></TR>
+      <TR><TD BGCOLOR="#cfe8cf">пакет <B>profiles</B><BR/>.mobileconfig + .sswan<BR/><FONT POINT-SIZE="10">из config-api (+ .sswan)</FONT></TD>
+          <TD BGCOLOR="#cfe8cf">пакет <B>fleet</B><BR/>health-пробы + реестр + автопровизия<BR/><FONT POINT-SIZE="10">из orchestrator</FONT></TD></TR>
+    </TABLE>>];
+
+  bill [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="9">
+      <TR><TD BGCOLOR="#f6dede"><B>БИЛЛИНГ &#183; ВНЕ MVP</B></TD></TR>
+      <TR><TD BGCOLOR="#cfe0f7">платёжные коннекторы<BR/>ЮKassa / Platega / …<BR/><FONT POINT-SIZE="10">webhook-хендлеры в том же бинаре</FONT></TD></TR>
+    </TABLE>>];
+
+  bot [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="9">
+      <TR><TD BGCOLOR="#ffe9a8"><B>Telegram-бот</B><BR/>Python, отдельный процесс<BR/><FONT POINT-SIZE="10">параллельный трек &#183; зовёт API бинаря<BR/>доставка профилей (НЕ пейджер)</FONT></TD></TR>
+    </TABLE>>];
+
+  iac [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="9">
+      <TR><TD BGCOLOR="#cfe8cf">OpenTofu + Ansible<BR/>роль node (регион + вход/выход)<BR/><FONT POINT-SIZE="10">отложено (B1): Prometheus/Grafana</FONT></TD></TR>
+    </TABLE>>];
+
+  legend [label=<
+    <TABLE BORDER="0" CELLBORDER="1" CELLSPACING="0" CELLPADDING="6">
+      <TR><TD BGCOLOR="#cfe8cf">есть / переиспользуем</TD></TR>
+      <TR><TD BGCOLOR="#cfe0f7">новое (писать)</TD></TR>
+      <TR><TD BGCOLOR="#ffe9a8">отдельный процесс / вне трека</TD></TR>
+    </TABLE>>];
+
+  // хребет
+  clients -> data    [label="IKEv2 + EAP-MSCHAPv2"];
+  data    -> aaa     [label="auth (RADIUS)"];
+  aaa     -> control [dir=back label="contract (CRUD) пишет / FR читает\nauth_credentials  ·  fleet пишет nodes"];
+
+  // боковые
+  bill -> control [label="renew()\nЕДИНСТВЕННЫЙ ШОВ" color="#c0392b" fontcolor="#c0392b" penwidth=2.0 constraint=false];
+  bot  -> control [label="API (provision/профиль)" style=dashed constraint=false];
+  bot  -> clients [label="профиль" style=dashed constraint=false];
+  control -> data [label="fleet: провизия (IaC)" style=dashed constraint=false];
+  control -> iac  [style=dashed constraint=false];
+
+  { rank=same; aaa; iac; }
+  { rank=same; control; bill; bot; }
+  legend -> bill [style=invis];
+}
