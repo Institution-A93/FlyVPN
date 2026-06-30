@@ -91,8 +91,12 @@ jobs:
       - name: Run engine scenarios (assert anti-lockout / quota / accounting)
         run: |
           set -e
+          # apt автозапустил freeradius.service (stock-конфиг, держит 1812/1813); debug-инстанс
+          # не забиндит порты, а radtest упрётся в stock-сервис без нашего sql-модуля.
+          sudo systemctl stop freeradius 2>/dev/null || true
           sudo freeradius -X >/tmp/fr.log 2>&1 &
-          for i in $(seq 1 20); do grep -q "Ready to process requests" /tmp/fr.log && break; sleep 1; done
+          for i in $(seq 1 30); do grep -q "Ready to process requests" /tmp/fr.log && break; sleep 1; done
+          grep -q "Ready to process requests" /tmp/fr.log || { echo "FreeRADIUS не поднялся:"; tail -50 /tmp/fr.log; exit 1; }
           RUN() { PGPASSWORD=radpw psql -h 127.0.0.1 -U radius -d radius -tAc "$1"; }
           fip() { radtest -t mschap alice 'Correct-Horse-9' 127.0.0.1:1812 0 testing123 2>&1; }
 
