@@ -55,9 +55,9 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
           EGRESS_VAULT: ${{ secrets.EGRESS_VAULT }}
           CONTROL_VAULT: ${{ secrets.CONTROL_VAULT }}
-          CONTROL_DIGISELLER: ${{ secrets.CONTROL_DIGISELLER }}
           CONTROL_RADIUS: ${{ secrets.CONTROL_RADIUS }}
           CONTROL_BOT: ${{ secrets.CONTROL_BOT }}
+          CONTROL_APP: ${{ secrets.CONTROL_APP }}
         run: |
           install -m 700 -d ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy
@@ -67,11 +67,12 @@ jobs:
           printf '%s\n' "$CONTROL_VAULT" > group_vars/control/vault.yml
           # Доп. секреты отдельными блобами (можно менять, не трогая CONTROL_VAULT).
           # Имя zz_* сортируется после vault.yml -> перекрывает пустые значения из него.
-          if [ -n "${CONTROL_DIGISELLER:-}" ]; then
-            printf '%s\n' "$CONTROL_DIGISELLER" > group_vars/control/zz_digiseller.yml
-          fi
           if [ -n "${CONTROL_RADIUS:-}" ]; then
             printf '%s\n' "$CONTROL_RADIUS" > group_vars/control/zz_radius.yml
+          fi
+          # control (ADR-0021): токены панели/webhook/DAE + пароль app-роли БД.
+          if [ -n "${CONTROL_APP:-}" ]; then
+            printf '%s\n' "$CONTROL_APP" > group_vars/control/zz_control.yml
           fi
           # Бот: без CONTROL_BOT роль `bot` пропускается (when в site.yml), деплой не падает.
           if [ -n "${CONTROL_BOT:-}" ]; then

@@ -1,6 +1,6 @@
 <dir name="adr" role="decision-records">
   <readme href="./readme.md"/>
-  <purpose>Зафиксированные архитектурные решения MMVP.</purpose>
+  <purpose>Зафиксированные архитектурные решения MMVP и MVP (веб-продукт).</purpose>
   <invariants>
     <i>Решение не редактируется задним числом — изменение оформляется новым ADR.</i>
     <i>Каждый ADR имеет статус и нумеруется монотонно.</i>

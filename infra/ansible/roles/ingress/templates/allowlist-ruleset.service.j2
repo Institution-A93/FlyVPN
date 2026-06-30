@@ -1,0 +1,9 @@
+[Unit]
+Description=Обновление allowlist rule_set (Telegram, walled garden) для sing-box
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/update-allowlist.sh
+ExecStartPost=/bin/systemctl reload-or-restart sing-box

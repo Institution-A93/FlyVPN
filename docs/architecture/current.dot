@@ -1,0 +1,47 @@
+digraph current {
+  rankdir=TB; bgcolor="white"; compound=true;
+  labelloc=t; fontsize=18; fontname="Helvetica-Bold";
+  label="FLY VPN — ЧТО ПОСТРОЕНО СЕЙЧАС (MMVP)";
+  node [shape=box style="rounded,filled" fontname="Helvetica" fontsize=11 penwidth=1.0 color="#888888"];
+  edge [fontname="Helvetica" fontsize=9 color="#666666"];
+
+  subgraph cluster_cli {
+    label="Клиент"; style="rounded,filled" fillcolor="#f6f6f6" color="#cfcfcf" fontname="Helvetica-Bold";
+    ios [label="iOS / macOS\n.mobileconfig (нативный IKEv2)" fillcolor="#cfe8cf"];
+  }
+
+  subgraph cluster_data {
+    label="DATA PLANE — работает (проверено на iPhone 18.06)"; style="rounded,filled" fillcolor="#eaf1fb" color="#b7cdee" fontname="Helvetica-Bold";
+    ingress [label="INGRESS · РФ (Selectel)\nstrongSwan IKEv2 + sing-box" fillcolor="#cfe8cf"];
+    egress  [label="EGRESS · загран (Hetzner)\nsing-box VLESS-Reality" fillcolor="#cfe8cf"];
+    ingress -> egress [label="Reality-камуфляж\nASN-split: РФ напрямую"];
+  }
+
+  subgraph cluster_ctrl {
+    label="CONTROL PLANE — Go-сервисы"; style="rounded,filled" fillcolor="#fff8e8" color="#eecf86" fontname="Helvetica-Bold";
+    configapi  [label="config-api\nвыдача по коду Digiseller\n★ Issue() — идемпотентно\nгенерация .mobileconfig" fillcolor="#cfe8cf"];
+    accountapi [label="account-api\nauth/OTP/Telegram/JWT\nbilling(Platega)/devices\n+ usage_log/subscriptions" fillcolor="#f7d4d4"];
+    orch       [label="orchestrator\nреестр nodes, health, cron" fillcolor="#ffe9a8"];
+    fr         [label="FreeRADIUS\nEAP-MSCHAPv2" fillcolor="#cfe8cf"];
+  }
+
+  pg [label="PostgreSQL — СВОЯ схема\nusers · auth_credentials · subscriptions\nusage_log · nodes · sessions" shape=cylinder fillcolor="#e6e6e6"];
+
+  ios -> ingress [label="IKEv2 + EAP-MSCHAPv2"];
+  ingress -> fr [label="auth (RADIUS)"];
+  fr -> pg [label="читает auth_credentials (sql.j2)"];
+  configapi -> pg [label="пишет creds/subs"];
+  configapi -> ios [style=dashed label="отдаёт .mobileconfig"];
+  accountapi -> pg;
+  orch -> pg;
+  orch -> ingress [style=dashed label="провизия / health"];
+  orch -> egress [style=dashed];
+
+  subgraph cluster_leg {
+    label="Легенда"; style="rounded" color="#cfcfcf" fontsize=10 fontname="Helvetica-Bold";
+    l1 [label="работает / остаётся в MVP" fillcolor="#cfe8cf" fontsize=9];
+    l2 [label="частично (cron-квоты уйдут)" fillcolor="#ffe9a8" fontsize=9];
+    l3 [label="растворяется в MVP" fillcolor="#f7d4d4" fontsize=9];
+    l1 -> l2 [style=invis]; l2 -> l3 [style=invis];
+  }
+}

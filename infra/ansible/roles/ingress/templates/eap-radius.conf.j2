@@ -9,4 +9,14 @@ eap-radius {
         }
     }
     accounting = yes
+
+    # CoA/Disconnect от control plane (анти-локаут, ADR-0021): при превышении капа/срока
+    # ПОСРЕДИ сессии control шлёт Disconnect-Request сюда → strongSwan рвёт IKE_SA →
+    # always-on клиент реконнектится → authorize_reply отдаёт restricted-пул (10.12/14).
+    dae {
+        enable = yes
+        listen = {{ ingress_dae_listen }}
+        port   = {{ ingress_dae_port }}
+        secret = {{ ingress_dae_secret }}
+    }
 }

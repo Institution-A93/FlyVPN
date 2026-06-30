@@ -1,0 +1,12 @@
+# Содержимое GitHub-секрета CONTROL_ACCOUNT (Settings → Secrets → Actions).
+# На деплое материализуется как group_vars/control/zz_account.yml (в .gitignore).
+# Имя zz_* сортируется ПОСЛЕ vault.yml → перекрывает пустые значения оттуда.
+# Без cp_accountapi_jwt_secret account-api НЕ активируется (юнит установлен, но не запущен).
+# Без Platega-кредов purchase/webhook отдают 503 (ADR-0020). Без Twilio OTP = 0000.
+cp_accountapi_jwt_secret: "CHANGE-ME-long-random-secret"   # подпись access-JWT (обяз. для запуска)
+cp_accountapi_telegram_bot_token: ""                       # токен бота для валидации login-widget (опц.)
+cp_accountapi_twilio_sid: ""                               # Twilio Account SID (опц.)
+cp_accountapi_twilio_token: ""                             # Twilio Auth Token (опц.)
+cp_accountapi_twilio_from: ""                              # Twilio номер-отправитель, E.164 (опц.)
+cp_accountapi_platega_merchant_id: ""                      # X-MerchantId Platega (опц.)
+cp_accountapi_platega_secret: ""                           # X-Secret Platega (опц.)

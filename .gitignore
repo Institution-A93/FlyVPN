@@ -40,6 +40,7 @@ group_vars/*/vault.yml
 group_vars/*/zz_digiseller.yml
 group_vars/*/zz_radius.yml
 group_vars/*/zz_bot.yml
+group_vars/*/zz_account.yml
 # Реальный inventory: IP узлов оперативно чувствительны (вне репозитория)
 inventory.ini
 inventory/*.ini

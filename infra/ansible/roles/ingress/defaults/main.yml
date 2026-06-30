@@ -10,12 +10,19 @@ ingress_tun_addr: "172.19.0.1/30"
 # Меньше MTU → sing-box анонсирует клиенту меньший TCP MSS → сегменты влезают без
 # фрагментации (на WiFi всё работало, на LTE крупные ответы рвались). 1320 ⇒ MSS ~1280.
 ingress_tun_mtu: 1320
-ingress_client_pool: "10.8.0.0/14"   # пул strongSwan (Framed-IP)
+ingress_client_pool: "10.8.0.0/13"   # пул strongSwan (Framed-IP): 10.8.0.0/14 active + 10.12.0.0/14 restricted (walled garden, ADR-0021)
 ingress_route_table: 100
 
 # Reality-клиент → egress. Параметры/секреты от оркестратора (vault, ADR-0012).
-ingress_egress_server: ""            # публичный IP/host egress
+ingress_egress_server: ""            # публичный IP/host exit-узла (другого региона)
 ingress_egress_port: 443
+# Симметрия (ADR-0023): ruleset «своего» региона → direct. РФ-вход → "ru"; загран-вход
+# (диаспора) ставит свой локальный набор (РФ тогда уходит в туннель к РФ-выходу).
+ingress_self_ruleset: "ru"
+# Allowlist для walled garden (ADR-0021): CIDR Telegram (официальный список). Расширяемо
+# (позже — платёжные сервисы). lapsed-юзеры (restricted-пул) ходят только сюда.
+ingress_allowlist_sources:
+  - "https://core.telegram.org/resources/cidr.txt"
 ingress_reality_uuid: ""             # client uuid (есть среди egress_clients)
 ingress_reality_public_key: ""       # public key Reality egress
 ingress_reality_short_id: ""         # shortId
@@ -41,6 +48,10 @@ ingress_radius_server: ""
 ingress_radius_secret: ""
 ingress_radius_auth_port: 1812
 ingress_radius_acct_port: 1813
+# CoA/Disconnect (DAE) — приём Disconnect-Request от control plane (анти-локаут):
+ingress_dae_listen: "0.0.0.0"
+ingress_dae_port: 3799
+ingress_dae_secret: ""   # из vault (INGRESS_VAULT)
 
 # Российские IP-подсети для rule_set (RU → direct). Нужен список РОССИЙСКИХ сетей
 # (GeoIP RU), НЕ список заблокированных ресурсов. ipdeny — бесплатный per-country zone

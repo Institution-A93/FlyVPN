@@ -75,6 +75,31 @@
     - { src: ru-ruleset.service.j2, dst: ru-ruleset.service }
     - { src: ru-ruleset.timer.j2, dst: ru-ruleset.timer }
 
+- name: Updater allowlist rule_set (Telegram, walled garden — ADR-0021)
+  ansible.builtin.template:
+    src: update-allowlist.sh.j2
+    dest: /usr/local/sbin/update-allowlist.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Собрать/обновить allowlist rule_set
+  ansible.builtin.command: /usr/local/sbin/update-allowlist.sh
+  register: allowlist_build
+  changed_when: "'обновлён' in allowlist_build.stdout"
+  notify: restart sing-box
+
+- name: Таймер обновления allowlist rule_set (раз в сутки)
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "/etc/systemd/system/{{ item.dst }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - { src: allowlist-ruleset.service.j2, dst: allowlist-ruleset.service }
+    - { src: allowlist-ruleset.timer.j2, dst: allowlist-ruleset.timer }
+
 - name: Конфиг sing-box (TUN + Reality client + ASN-split)
   ansible.builtin.template:
     src: singbox-ingress.json.j2
@@ -179,7 +204,7 @@
     enabled: true
     state: started
     daemon_reload: true
-  loop: [sing-box, mesh-route, "ru-ruleset.timer"]
+  loop: [sing-box, mesh-route, "ru-ruleset.timer", "allowlist-ruleset.timer"]
 
 # charon рестартим всегда: иначе работающий с прошлого прогона демон не подхватит
 # свежеустановленные плагины (openssl для ECDSA-серта LE) и обновлённый конфиг.

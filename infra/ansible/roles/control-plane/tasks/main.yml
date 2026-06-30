@@ -101,6 +101,37 @@
     path: "{{ cp_migrations_dir }}/0002_nodes_public_ip_unique.up.sql"
   when: not cp_m2_check.query_result[0].exists
 
+# --- Миграции к целевой схеме (ADR-0021). 0003/0004 (account-слой) НЕ применяем —
+#     растворены; 0007 чистит остатки 0001 (subscriptions/usage_log) и, если были,
+#     таблицы 0003/0004. Идемпотентно по маркерам (без create-then-drop churn). ---
+- name: Проверить применённость целевых миграций (маркеры по колонкам/таблицам)
+  community.postgresql.postgresql_query:
+    db: "{{ cp_db_name }}"
+    login_unix_socket: /var/run/postgresql
+    query: >-
+      SELECT
+        EXISTS (SELECT 1 FROM information_schema.columns
+                WHERE table_name='auth_credentials' AND column_name='revoked_reason') AS m5,
+        to_regclass('public.radacct') IS NOT NULL AS m6,
+        to_regclass('public.subscriptions') IS NULL AS m7
+  become: true
+  become_user: postgres
+  register: cp_mvp_check
+
+- name: Применить целевые миграции (как владелец app)
+  community.postgresql.postgresql_script:
+    db: "{{ cp_db_name }}"
+    login_user: "{{ cp_db_app_user }}"
+    login_password: "{{ cp_db_app_password }}"
+    login_host: "{{ cp_db_host }}"
+    port: "{{ cp_db_port }}"
+    path: "{{ cp_migrations_dir }}/{{ item.file }}"
+  when: not cp_mvp_check.query_result[0][item.marker]
+  loop:
+    - { file: "0005_revoke_reason.up.sql", marker: "m5" }
+    - { file: "0006_radacct_entitlement_limits.up.sql", marker: "m6" }
+    - { file: "0007_drop_account_layer.up.sql", marker: "m7" }
+
 # FreeRADIUS читает только auth_credentials → выдаём ему лишь SELECT на неё.
 - name: Выдать SELECT на auth_credentials read-only роли
   community.postgresql.postgresql_privs:
@@ -132,6 +163,9 @@
     group: freerad
   notify: restart freeradius
 
+# Отдельный acct-листенер не нужен: стоковый sites-enabled/default уже слушает acct
+# на 1813 и зовёт sql в секции accounting (наши queries из mods-available/sql пишут
+# radacct). Дублирующий listen ломал старт FreeRADIUS («Address already in use», 1813).
 - name: Развернуть clients.conf (RADIUS-клиенты — ingress-узлы)
   ansible.builtin.template:
     src: clients.conf.j2
@@ -190,54 +224,36 @@
     group: root
     mode: "0644"
 
-- name: Собрать бинари сервисов
+- name: Собрать бинарь control (модульный монолит, ADR-0021)
   ansible.builtin.command:
-    cmd: "/usr/local/go/bin/go build -o /usr/local/bin/{{ item.bin }} ./cmd/{{ item.bin }}"
-    chdir: "{{ cp_src_dir }}/{{ item.dir }}"
+    cmd: "/usr/local/go/bin/go build -o /usr/local/bin/control ./cmd/control"
+    chdir: "{{ cp_src_dir }}/control"
   environment:
     GOCACHE: /tmp/gocache
     GOPATH: /tmp/gopath
-  loop:
-    - { dir: config-api, bin: config-api }
-    - { dir: orchestrator, bin: orchestrator }
-  notify:
-    - restart config-api
-    - restart orchestrator
+  notify: restart control
 
-- name: EnvironmentFile config-api
+- name: EnvironmentFile control
   ansible.builtin.template:
-    src: config-api.env.j2
-    dest: /etc/smartinternet/config-api.env
+    src: control.env.j2
+    dest: /etc/smartinternet/control.env
     owner: root
     group: smartinternet
     mode: "0640"
-  notify: restart config-api
+  notify: restart control
 
-- name: EnvironmentFile orchestrator
+- name: systemd-юнит control
   ansible.builtin.template:
-    src: orchestrator.env.j2
-    dest: /etc/smartinternet/orchestrator.env
-    owner: root
-    group: smartinternet
-    mode: "0640"
-  notify: restart orchestrator
-
-- name: systemd-юниты сервисов
-  ansible.builtin.template:
-    src: "{{ item }}.service.j2"
-    dest: "/etc/systemd/system/{{ item }}.service"
+    src: control.service.j2
+    dest: /etc/systemd/system/control.service
     owner: root
     group: root
     mode: "0644"
-  loop: [config-api, orchestrator]
-  notify:
-    - restart config-api
-    - restart orchestrator
+  notify: restart control
 
-- name: Включить и запустить Go-сервисы
+- name: Включить и запустить control
   ansible.builtin.systemd:
-    name: "{{ item }}"
+    name: control
     enabled: true
     state: started
     daemon_reload: true
-  loop: [config-api, orchestrator]
