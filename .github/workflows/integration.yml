@@ -56,8 +56,9 @@ jobs:
       - name: Install PG + FreeRADIUS + eapol_test
         run: |
           sudo apt-get update -qq
+          # freeradius-utils даёт radtest/radclient (метапакет freeradius их не тянет).
           sudo apt-get install -y --no-install-recommends \
-            postgresql freeradius freeradius-postgresql eapoltest
+            postgresql freeradius freeradius-utils freeradius-postgresql eapoltest
       - name: Setup radius DB (schema 0001 + 0006) + seed user
         run: |
           sudo pg_ctlcluster 16 main start || sudo pg_ctlcluster 16 main restart
