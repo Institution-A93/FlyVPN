@@ -57,5 +57,6 @@
 
 ## Откат при провале
 - Доступ полностью лежит → `systemctl status control freeradius`; `journalctl -u freeradius`.
-- Reject вместо walled-garden → проверить `authorize_reply_query` (пул) и `sites-enabled/flyvpn-acct`.
+- Reject вместо walled-garden → проверить `authorize_reply_query` (пул) и включённый `mods-enabled/sql`.
+- Accounting не пишется в radacct → стоковый `sites-enabled/default` должен звать `sql` в `accounting{}` (acct на 1813 — его листенер).
 - CoA не рвёт → firewall 3799, `ingress_dae_secret` == `cp_control_dae_secret`.

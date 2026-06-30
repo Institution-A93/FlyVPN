@@ -163,15 +163,9 @@
     group: freerad
   notify: restart freeradius
 
-- name: Acct-листенер FreeRADIUS (приём accounting → radacct)
-  ansible.builtin.template:
-    src: freeradius-acct.j2
-    dest: /etc/freeradius/3.0/sites-enabled/flyvpn-acct
-    owner: root
-    group: freerad
-    mode: "0640"
-  notify: restart freeradius
-
+# Отдельный acct-листенер не нужен: стоковый sites-enabled/default уже слушает acct
+# на 1813 и зовёт sql в секции accounting (наши queries из mods-available/sql пишут
+# radacct). Дублирующий listen ломал старт FreeRADIUS («Address already in use», 1813).
 - name: Развернуть clients.conf (RADIUS-клиенты — ingress-узлы)
   ansible.builtin.template:
     src: clients.conf.j2
