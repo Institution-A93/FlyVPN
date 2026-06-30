@@ -98,9 +98,10 @@ jobs:
           grep -q "Ready to process requests" /tmp/fr.log || { echo "FreeRADIUS не поднялся:"; tail -50 /tmp/fr.log; exit 1; }
           RUN() { PGPASSWORD=radpw psql -h 127.0.0.1 -U radius -d radius -tAc "$1"; }
           fip() { radtest -t mschap alice 'Correct-Horse-9' 127.0.0.1:1812 0 testing123 2>&1; }
+          DIAG() { echo "---- radtest ----"; fip; echo "---- sql connect/auth trace ----"; grep -nE "rlm_sql|Connected|Failed to connect|NT-Password|Cleartext|mschap|Login incorrect|Access-(Accept|Reject)|sql_user_name|expand|No such|denied|ERROR" /tmp/fr.log | tail -80; }
 
           echo "== active → Accept + 10.8 =="
-          fip | grep -q "Access-Accept" || { echo FAIL active accept; exit 1; }
+          fip | grep -q "Access-Accept" || { echo "FAIL active accept"; DIAG; exit 1; }
           fip | grep -qE "Framed-IP-Address = 10\.(8|9|10|11)\." || { echo FAIL active pool; exit 1; }
 
           echo "== EAP-MSCHAPv2 (path strongSwan) success =="
